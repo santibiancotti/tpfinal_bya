@@ -51,3 +51,56 @@ def leer_matriculados(materia):
     ].copy()
 
     return matriculados
+
+def leer_participacion(materia):
+    carpeta_materia = CARPETA_DATOS / materia
+
+    if not carpeta_materia.is_dir():
+        raise FileNotFoundError(
+            f"No se encuentra la carpeta: {carpeta_materia}"
+        )
+
+    archivos = sorted(
+        archivo
+        for archivo in carpeta_materia.glob(
+            "reporte_participacion_*.xlsx"
+        )
+        if archivo.is_file()
+    )
+
+    if not archivos:
+        raise FileNotFoundError(
+            f"No se encontró un reporte de participación para {materia}."
+        )
+
+    if len(archivos) > 1:
+        raise ValueError(
+            f"Se encontró más de un reporte de participación para "
+            f"{materia}. Debemos definir cuál utilizar."
+        )
+
+    columnas = [
+        "Usuario",
+        "Apellido",
+        "Nombre",
+        "Perfil",
+        "Fecha alta",
+        "Avance",
+        "Interacciones",
+        "Primera interacción",
+        "Última interacción",
+        "Tiempo estimado de uso",
+    ]
+
+    participacion = pd.read_excel(
+        archivos[0],
+        header=5,
+        usecols=columnas,
+        dtype={"Usuario": "string"},
+    )
+
+    participacion = participacion.loc[
+        participacion["Usuario"].notna()
+    ].copy()
+
+    return participacion

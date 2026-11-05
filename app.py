@@ -1,8 +1,12 @@
 import streamlit as st
 
-from datos import detectar_materias, leer_matriculados
+from datos import detectar_materias, leer_matriculados,  leer_participacion
 
-from procesamiento import consolidar_matricula
+
+from procesamiento import consolidar_matricula, preparar_participacion, cruzar_matricula_participacion, clasificar_alertas
+
+
+from vistas import mostrar_inicio, mostrar_matricula, mostrar_participacion
 
 
 st.set_page_config(
@@ -10,59 +14,123 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("Seguimiento académico")
 
-st.write(
-    "Análisis de participación, rendimiento y matrícula "
-    "de estudiantes."
-)
+def pagina_inicio():
+    mostrar_inicio(paginas)
 
-try:
-    materias = detectar_materias()
-except FileNotFoundError as error:
-    st.error(str(error))
-    st.stop()
 
-if not materias:
-    st.warning("No se encontraron archivos de matrícula.")
-    st.stop()
+def pagina_matricula():
+    materia = st.session_state["materia_actual"]
 
-materia_seleccionada = st.selectbox(
-    "Selecciona una materia",
-    options = materias,
-)
+    try:
+        matriculados = leer_matriculados(materia)
 
-try:
-    matriculados = leer_matriculados(materia_seleccionada)
-    matricula_actual = consolidar_matricula(matriculados)
-except (FileNotFoundError, ValueError) as error:
-    st.error(str(error))
-    st.stop()
+        matricula_actual = consolidar_matricula(
+            matriculados
+        )
 
-vigentes = (
-    matricula_actual["Estado Insc."]
-    .astype("string")
-    .str.strip()
-    .str.casefold()
-    .eq("aceptada")
-    .sum()
-)
+        participacion = leer_participacion(materia)
 
-st.subheader("Situación actual de matrícula")
+        participacion_alumnos = preparar_participacion(
+            participacion
+        )
 
-col1, col2, col3 = st.columns(3)
+        base_alumnos = cruzar_matricula_participacion(
+            matricula_actual,
+            participacion_alumnos,
+        )
 
-col1.metric("Registros del archivo", len(matriculados))
-col2.metric("Estudiantes únicos", len(matricula_actual))
-col3.metric("Matrículas vigentes", int(vigentes))
+        base_alumnos = clasificar_alertas(base_alumnos)
+        
+    except (FileNotFoundError, ValueError) as error:
+        st.error(str(error))
+        st.stop()
 
-st.dataframe(
-    matricula_actual,
-    hide_index=True,
-)
-
-with st.expander("Ver historial completo"):
-    st.dataframe(
+    mostrar_matricula(
         matriculados,
-        hide_index=True,
+        matricula_actual,
+        base_alumnos,
     )
+
+
+def pagina_participacion():
+    materia = st.session_state["materia_actual"]
+
+    try:
+        participacion = leer_participacion(materia)
+
+        participacion_alumnos = preparar_participacion(
+            participacion
+        )
+    except (FileNotFoundError, ValueError) as error:
+        st.error(str(error))
+        st.stop()
+
+    mostrar_participacion(
+        participacion,
+        participacion_alumnos,
+    )
+
+
+paginas = {
+    "inicio": st.Page(
+        pagina_inicio,
+        title="Inicio",
+        default=True,
+    ),
+    "matricula": st.Page(
+        pagina_matricula,
+        title="Matrícula y alertas",
+        url_path="matricula",
+    ),
+    "participacion": st.Page(
+        pagina_participacion,
+        title="Participación",
+        url_path="participacion",
+    ),
+}
+
+
+pagina_actual = st.navigation(
+    list(paginas.values()),
+    position="hidden",
+)
+
+
+if pagina_actual.url_path != paginas["inicio"].url_path:
+    if st.button("Volver al inicio"):
+        st.switch_page(paginas["inicio"])
+
+    st.title(pagina_actual.title)
+
+    try:
+        materias = detectar_materias()
+    except FileNotFoundError as error:
+        st.error(str(error))
+        st.stop()
+
+    if not materias:
+        st.warning(
+            "No se encontraron archivos de matrícula."
+        )
+        st.stop()
+
+    materia_anterior = st.session_state.get(
+        "materia_actual"
+    )
+
+    indice = (
+        materias.index(materia_anterior)
+        if materia_anterior in materias
+        else 0
+    )
+
+    st.session_state["materia_actual"] = st.selectbox(
+        "Seleccioná una materia",
+        options=materias,
+        index=indice,
+        key="selector_materia",
+    )
+
+
+pagina_actual.run()
