@@ -1,6 +1,8 @@
 import streamlit as st
 
-from procesamiento import FILTROS_POBLACION, seleccionar_poblacion, filtrar_situaciones
+from hashlib import sha256
+
+from procesamiento import FILTROS_POBLACION, seleccionar_poblacion, filtrar_situaciones, resumir_actividad, filtrar_trazabilidad, DIAS_SEMANA, resumir_horarios
 
 def mostrar_inicio(paginas):
     st.title("Seguimiento académico")
@@ -280,5 +282,256 @@ def mostrar_participacion(participacion, participacion_alumnos):
 
         st.dataframe(
             reporte_visual,
+            hide_index=True,
+        )
+
+def mostrar_trazabilidad(trazabilidad, trazabilidad_alumnos,):
+    if trazabilidad_alumnos.empty:
+        st.info(
+            "El reporte no contiene registros de alumnos."
+        )
+        return
+
+    fecha_min = (
+        trazabilidad_alumnos["Fecha"].min().date()
+    )
+
+    fecha_max = (
+        trazabilidad_alumnos["Fecha"].max().date()
+    )
+
+    periodo = st.date_input(
+        "Período a consultar",
+        value=(fecha_min, fecha_max),
+        min_value=fecha_min,
+        max_value=fecha_max,
+        format="DD/MM/YYYY",
+        key=(
+            f"trazabilidad_periodo_"
+            f"{fecha_min}_{fecha_max}"
+        ),
+    )
+
+    usuarios = (
+        trazabilidad_alumnos[
+            ["Usuario", "Apellido", "Nombre"]
+        ]
+        .drop_duplicates(subset="Usuario")
+        .sort_values("Usuario")
+    )
+
+    etiquetas = {
+        usuario: f"{usuario} - {apellido}, {nombre}"
+        for usuario, apellido, nombre
+        in usuarios.itertuples(
+            index=False,
+            name=None,
+        )
+    }
+
+    usuario_seleccionado = st.selectbox(
+        "Estudiante",
+        options=[None] + list(etiquetas),
+        format_func=lambda usuario: (
+            "Todos"
+            if usuario is None
+            else etiquetas[usuario]
+        ),
+        key="trazabilidad_estudiante",
+        help=(
+            "La lista incluye a los alumnos con registros "
+            "en el reporte completo de esta materia."
+        ),
+    )
+
+    if len(periodo) != 2:
+        st.info(
+            "Seleccioná la fecha de inicio y la fecha final."
+        )
+        return
+
+    trazabilidad_alumnos = filtrar_trazabilidad(
+        trazabilidad_alumnos,
+        periodo[0],
+        periodo[1],
+        usuario_seleccionado,
+    )
+
+    if trazabilidad_alumnos.empty:
+        st.info(
+            "No hay registros para el período "
+            "y estudiante seleccionados."
+        )
+
+    cantidad_repeticiones = int(
+        trazabilidad_alumnos[
+            "Repetición exacta adicional"
+        ].sum()
+    )
+
+    cantidad_alumnos = (
+        trazabilidad_alumnos["Usuario"].nunique()
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric(
+        "Registros del reporte (total)",
+        len(trazabilidad),
+    )
+
+    col2.metric(
+        "Registros seleccionados",
+        len(trazabilidad_alumnos),
+    )
+
+    col3.metric(
+        "Alumnos con eventos",
+        cantidad_alumnos,
+    )
+
+    col4.metric(
+        "Repeticiones exactas adicionales",
+        cantidad_repeticiones,
+    )
+
+    st.caption(
+        "El total del reporte incluye todos los perfiles "
+        "y no cambia con los filtros. "
+        "Los otros indicadores, resúmenes y detalle "
+        "corresponden al período y estudiante seleccionados. "
+        "Las repeticiones marcadas permanecen incluidas."
+    )
+
+    configuracion = [
+        ("Por día", "Día"),
+        ("Por semana", "Semana"),
+        ("Por acción", "Acción"),
+    ]
+
+    pestanas = st.tabs(
+        ["Mapa horario"]
+        + [
+            titulo
+            for titulo, campo in configuracion
+        ]
+        + ["Detalle"]
+    )
+
+    with pestanas[0]:
+        if not trazabilidad_alumnos.empty:
+            horarios = resumir_horarios(
+                trazabilidad_alumnos
+            )
+
+            firma_mapa = sha256(
+                horarios.to_json(
+                    orient="split"
+                ).encode("utf-8")
+            ).hexdigest()
+
+            st.vega_lite_chart(
+                horarios,
+                spec={
+                    "name": f"mapa_horario_{firma_mapa}",
+                    "mark": "rect",
+                    "encoding": {
+                        "x": {
+                            "field": "Hora",
+                            "type": "ordinal",
+                            "title": "Hora del día",
+                            "sort": list(range(24)),
+                        },
+                        "y": {
+                            "field": "Nombre del día",
+                            "type": "ordinal",
+                            "title": None,
+                            "sort": DIAS_SEMANA,
+                        },
+                        "color": {
+                            "field": "Registros",
+                            "type": "quantitative",
+                            "title": "Registros",
+                            "scale": {
+                                "scheme": "blues",
+                                "zero": True,
+                            },
+                        },
+                        "tooltip": [
+                            {
+                                "field": "Nombre del día",
+                                "type": "nominal",
+                                "title": "Día",
+                            },
+                            {
+                                "field": "Hora",
+                                "type": "ordinal",
+                                "title": "Hora",
+                            },
+                            {
+                                "field": "Registros",
+                                "type": "quantitative",
+                                "title": "Registros",
+                                "format": ",.0f",
+                            },
+                        ],
+                    },
+                },
+                width="stretch",
+                height=260,
+            )
+
+            st.caption(
+                "Cada celda suma los registros de ese día "
+                "de semana y esa hora dentro de la selección. "
+                "Por ejemplo, la hora 20 comprende "
+                "desde las 20:00 hasta antes de las 21:00. "
+                "Las repeticiones marcadas están incluidas."
+            )
+
+    for pestana, configuracion_actual in zip(
+        pestanas[1:],
+        configuracion,
+    ):
+        titulo, campo = configuracion_actual
+
+        with pestana:
+            resumen = resumir_actividad(
+                trazabilidad_alumnos,
+                campo,
+            )
+
+            if campo == "Acción" and not resumen.empty:
+                st.bar_chart(
+                    resumen.head(10),
+                    x="Acción",
+                    y="Registros",
+                    horizontal=True,
+                    sort="-Registros",
+                    height=350,
+                )
+
+                st.caption(
+                    "El gráfico muestra hasta diez acciones "
+                    "con más registros. "
+                    "La tabla conserva todas las acciones."
+                )
+
+            st.dataframe(
+                resumen,
+                hide_index=True,
+            )
+
+    with pestanas[-1]:
+        st.dataframe(
+            trazabilidad_alumnos,
+            hide_index=True,
+        )
+
+    with st.expander(
+        "Ver reporte original con todos los perfiles"
+    ):
+        st.dataframe(
+            trazabilidad,
             hide_index=True,
         )

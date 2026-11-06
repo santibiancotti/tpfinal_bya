@@ -41,16 +41,16 @@ def consolidar_matricula(matriculados):
 
     return actuales.reset_index(drop=True)
 
-def preparar_participacion(participacion):
-    perfil_normalizado = (
-        participacion["Perfil"]
+def obtener_alumnos(reporte):
+    perfil = (
+        reporte["Perfil"]
         .astype("string")
         .str.strip()
         .str.casefold()
     )
 
-    alumnos = participacion.loc[
-        perfil_normalizado.eq("alumnos")
+    alumnos = reporte.loc[
+        perfil.eq("alumnos")
     ].copy()
 
     alumnos["Usuario"] = (
@@ -59,6 +59,12 @@ def preparar_participacion(participacion):
         .str.strip()
         .str.upper()
     )
+
+    return alumnos
+
+def preparar_participacion(participacion):
+
+    alumnos = obtener_alumnos(participacion)
 
     if alumnos["Usuario"].duplicated().any():
         raise ValueError(
@@ -287,3 +293,149 @@ def filtrar_situaciones(alumnos, filtros):
             ]
 
     return datos.copy()
+
+def preparar_trazabilidad(trazabilidad):
+    alumnos = obtener_alumnos(trazabilidad)
+
+    alumnos["Repetición exacta adicional"] = (
+        alumnos.duplicated(keep="first")
+    )
+
+    alumnos["Fecha"] = pd.to_datetime(
+        alumnos["Fecha"],
+        errors="raise",
+    )
+
+    alumnos["Acción"] = (
+        alumnos["Acción"]
+        .astype("string")
+        .str.strip()
+        .replace("", pd.NA)
+        .fillna("Acción no informada")
+    )
+
+    alumnos["Día"] = (
+        alumnos["Fecha"].dt.normalize()
+    )
+
+    alumnos["Semana"] = (
+        alumnos["Fecha"]
+        .dt.to_period("W-SUN")
+        .dt.start_time
+    )
+
+    alumnos["Hora"] = (
+        alumnos["Fecha"]
+        .dt.hour
+        .astype("Int64")
+    )
+
+    alumnos["Día de semana"] = (
+        alumnos["Fecha"]
+        .dt.dayofweek
+        .astype("Int64")
+    )
+
+    return alumnos.sort_values(
+        "Fecha",
+        kind="stable",
+    ).reset_index(drop=True)
+
+def resumir_actividad(eventos, campo):
+    resumen = eventos.groupby(
+        campo,
+        as_index=False,
+        dropna=False,
+    ).agg(
+        **{
+            "Registros": (
+                "Usuario",
+                "size",
+            ),
+            "Alumnos con eventos": (
+                "Usuario",
+                "nunique",
+            ),
+            "Repeticiones adicionales": (
+                "Repetición exacta adicional",
+                "sum",
+            ),
+        }
+    )
+
+    if campo == "Acción":
+        resumen = resumen.sort_values(
+            "Registros",
+            ascending=False,
+            kind="stable",
+        )
+
+    return resumen.reset_index(drop=True)
+
+def filtrar_trazabilidad(
+    eventos,
+    fecha_desde,
+    fecha_hasta,
+    usuario=None,
+):
+    inicio = pd.Timestamp(fecha_desde).normalize()
+    hasta = pd.Timestamp(fecha_hasta).normalize()
+
+    if inicio > hasta:
+        raise ValueError(
+            "La fecha inicial no puede ser "
+            "posterior a la final."
+        )
+
+    fin_exclusivo = hasta + pd.Timedelta(days=1)
+
+    condicion = (
+        eventos["Fecha"].ge(inicio)
+        & eventos["Fecha"].lt(fin_exclusivo)
+    )
+
+    if usuario is not None:
+        condicion = (
+            condicion
+            & eventos["Usuario"].eq(usuario)
+        )
+
+    return eventos.loc[condicion].copy()
+
+
+DIAS_SEMANA = [
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+    "Domingo",
+]
+
+
+def resumir_horarios(eventos):
+    resumen = resumir_actividad(
+        eventos,
+        ["Día de semana", "Hora"],
+    )
+
+    combinaciones = pd.MultiIndex.from_product(
+        [range(7), range(24)],
+        names=["Día de semana", "Hora"],
+    )
+
+    resumen = (
+        resumen
+        .set_index(["Día de semana", "Hora"])
+        .reindex(combinaciones, fill_value=0)
+        .reset_index()
+    )
+
+    resumen["Nombre del día"] = (
+        resumen["Día de semana"].map(
+            dict(enumerate(DIAS_SEMANA))
+        )
+    )
+
+    return resumen

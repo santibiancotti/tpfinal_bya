@@ -1,12 +1,12 @@
 import streamlit as st
 
-from datos import detectar_materias, leer_matriculados,  leer_participacion
+from datos import detectar_materias, leer_matriculados,  leer_participacion, leer_trazabilidad
 
 
-from procesamiento import consolidar_matricula, preparar_participacion, cruzar_matricula_participacion, clasificar_alertas
+from procesamiento import consolidar_matricula, preparar_participacion, cruzar_matricula_participacion, clasificar_alertas, preparar_trazabilidad
 
 
-from vistas import mostrar_inicio, mostrar_matricula, mostrar_participacion
+from vistas import mostrar_inicio, mostrar_matricula, mostrar_participacion, mostrar_trazabilidad
 
 
 st.set_page_config(
@@ -71,6 +71,26 @@ def pagina_participacion():
         participacion_alumnos,
     )
 
+def pagina_trazabilidad():
+    materia = st.session_state["materia_actual"]
+
+    try:
+        with st.spinner(
+            "Leyendo y preparando trazabilidad..."
+        ):
+            trazabilidad = leer_trazabilidad(materia)
+
+            trazabilidad_alumnos = preparar_trazabilidad(
+                trazabilidad
+            )
+    except (FileNotFoundError, ValueError) as error:
+        st.error(str(error))
+        st.stop()
+
+    mostrar_trazabilidad(
+        trazabilidad,
+        trazabilidad_alumnos,
+    )
 
 paginas = {
     "inicio": st.Page(
@@ -88,6 +108,11 @@ paginas = {
         title="Participación",
         url_path="participacion",
     ),
+    "trazabilidad": st.Page(
+        pagina_trazabilidad,
+        title="Trazabilidad",
+        url_path="trazabilidad",
+    )
 }
 
 

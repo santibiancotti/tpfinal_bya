@@ -1,5 +1,6 @@
 from pathlib import Path
 import pandas as pd
+import streamlit as st
 
 CARPETA_PROYECTO = Path(__file__).resolve().parent
 
@@ -52,7 +53,7 @@ def leer_matriculados(materia):
 
     return matriculados
 
-def leer_participacion(materia):
+def buscar_reporte(materia, tipo):
     carpeta_materia = CARPETA_DATOS / materia
 
     if not carpeta_materia.is_dir():
@@ -63,21 +64,28 @@ def leer_participacion(materia):
     archivos = sorted(
         archivo
         for archivo in carpeta_materia.glob(
-            "reporte_participacion_*.xlsx"
+            f"reporte_{tipo}_*.xlsx"
         )
         if archivo.is_file()
     )
 
     if not archivos:
         raise FileNotFoundError(
-            f"No se encontró un reporte de participación para {materia}."
+            f"No se encontró un reporte de {tipo} "
+            f"para {materia}."
         )
 
     if len(archivos) > 1:
         raise ValueError(
-            f"Se encontró más de un reporte de participación para "
-            f"{materia}. Debemos definir cuál utilizar."
+            f"Se encontró más de un reporte de {tipo} "
+            f"para {materia}. Debemos definir cuál utilizar."
         )
+
+    return archivos[0]
+
+def leer_participacion(materia):
+
+    archivo = buscar_reporte(materia, "participacion")
 
     columnas = [
         "Usuario",
@@ -93,7 +101,7 @@ def leer_participacion(materia):
     ]
 
     participacion = pd.read_excel(
-        archivos[0],
+        archivo,
         header=5,
         usecols=columnas,
         dtype={"Usuario": "string"},
@@ -104,3 +112,47 @@ def leer_participacion(materia):
     ].copy()
 
     return participacion
+
+@st.cache_data(
+    show_spinner=False,
+    max_entries=6,
+)
+def _leer_trazabilidad_cache(
+    ruta,
+    modificacion_ns,
+    tamano,
+):
+    columnas = [
+        "Fecha",
+        "IP Usuario",
+        "Usuario",
+        "Apellido",
+        "Nombre",
+        "Aula",
+        "Perfil",
+        "Sección",
+        "Acción",
+        "Descripción",
+    ]
+
+    return pd.read_excel(
+        ruta,
+        header=5,
+        usecols=columnas,
+        dtype={"Usuario": "string"},
+    )
+
+
+def leer_trazabilidad(materia):
+    archivo = buscar_reporte(
+        materia,
+        "trazabilidad",
+    )
+
+    estado = archivo.stat()
+
+    return _leer_trazabilidad_cache(
+        str(archivo),
+        estado.st_mtime_ns,
+        estado.st_size,
+    )
