@@ -1,5 +1,7 @@
 import pandas as pd
 
+from math import ceil
+
 
 def consolidar_matricula(matriculados):
     datos = matriculados.copy()
@@ -294,9 +296,14 @@ def filtrar_situaciones(alumnos, filtros):
 
     return datos.copy()
 
-def preparar_trazabilidad(trazabilidad):
+def preparar_trazabilidad(trazabilidad, usuario=None):
     alumnos = obtener_alumnos(trazabilidad)
 
+    if usuario is not None:
+        alumnos = alumnos.loc[
+            alumnos["Usuario"].eq(usuario)
+        ].copy()
+        
     alumnos["Repetición exacta adicional"] = (
         alumnos.duplicated(keep="first")
     )
@@ -439,3 +446,230 @@ def resumir_horarios(eventos):
     )
 
     return resumen
+
+def resumir_accesos_diarios(
+    eventos,
+    fecha_desde,
+    fecha_hasta,
+    usuario=None,
+):
+    seleccion = filtrar_trazabilidad(
+        eventos,
+        fecha_desde,
+        fecha_hasta,
+        usuario,
+    )
+
+    accesos = seleccion.loc[
+        seleccion["Acción"].eq("Acceder")
+    ]
+
+    resumen = resumir_actividad(accesos, "Día")
+
+    dias = pd.date_range(
+        fecha_desde,
+        fecha_hasta,
+        freq="D",
+        normalize=True,
+        name="Día",
+    )
+
+    return (
+        resumen
+        .set_index("Día")
+        .reindex(dias, fill_value=0)
+        .reset_index()
+        .rename(columns={"Registros": "Accesos a secciones"})
+    )
+
+def resumir_participacion(alumnos):
+    actividad = alumnos["Con actividad"]
+    con_dato_actividad = int(actividad.notna().sum())
+    con_actividad = int(actividad.sum())
+    tiempos = alumnos["Tiempo de uso (minutos)"].dropna()
+
+    return {
+        "alumnos": len(alumnos),
+        "con_actividad": con_actividad,
+        "sin_actividad": con_dato_actividad - con_actividad,
+        "con_dato_actividad": con_dato_actividad,
+        "cobertura": (
+            100 * con_actividad / con_dato_actividad
+            if con_dato_actividad
+            else None
+        ),
+        "con_tiempo": len(tiempos),
+        "tiempo_promedio": (
+            float(tiempos.mean()) if not tiempos.empty else None
+        ),
+    }
+
+def preparar_calificaciones(calificaciones):
+    datos = calificaciones.copy()
+
+    datos["Usuario"] = (
+        datos["Usuario"]
+        .astype("string")
+        .str.strip()
+        .str.upper()
+    )
+
+    if datos.duplicated(subset=["Usuario", "Instrumento"]).any():
+        raise ValueError(
+            "Hay usuarios con más de una fila para el mismo instrumento."
+        )
+
+    notas = (
+        datos["Nota"]
+        .astype("string")
+        .str.strip()
+        .replace("", pd.NA)
+    )
+
+    partes = notas.str.extract(
+        r"^(?P<puntos>[0-9]+(?:[.,][0-9]+)?)"
+        r"\s*/\s*(?P<maximo>[0-9]+(?:[.,][0-9]+)?)$"
+    )
+
+    invalidas = notas.notna() & partes["puntos"].isna()
+
+    if invalidas.any():
+        nota = datos.loc[invalidas, "Nota"].iloc[0]
+        raise ValueError(f"Formato de nota inesperado: {nota}.")
+
+    puntos = pd.to_numeric(
+        partes["puntos"].str.replace(",", ".", regex=False)
+    ).astype("Float64")
+
+    maximos = pd.to_numeric(
+        partes["maximo"].str.replace(",", ".", regex=False)
+    ).astype("Float64")
+
+    if (maximos.le(0) | puntos.gt(maximos)).any():
+        raise ValueError(
+            "Hay una nota con máximo no positivo "
+            "o puntos por encima del máximo."
+        )
+
+    datos["Puntos obtenidos"] = puntos
+    datos["Puntos máximos"] = maximos
+    datos["Porcentaje obtenido"] = 100 * puntos / maximos
+
+    return datos
+
+
+def resumir_instrumentos(calificaciones):
+    resumen = calificaciones.groupby(
+        "Instrumento",
+        as_index=False,
+    ).agg(
+        **{
+            "Notas informadas": ("Porcentaje obtenido", "count"),
+            "Promedio (%)": ("Porcentaje obtenido", "mean"),
+        }
+    )
+
+    return resumen.sort_values(
+        "Promedio (%)",
+        ascending=False,
+        ignore_index=True,
+    )
+
+def resumir_resultados_alumnos(calificaciones, materia):
+    por_alumno = calificaciones.groupby("Usuario")
+
+    resultado = por_alumno.agg(
+        **{
+            "Apellido": ("Apellido", "first"),
+            "Nombre": ("Nombre", "first"),
+            "Instrumentos con nota": ("Puntos obtenidos", "count"),
+        }
+    )
+
+    if materia == "Álgebra":
+        resultado["Resultado observado"] = (
+            por_alumno["Puntos obtenidos"].sum(min_count=1)
+        )
+        resultado["Máximo de sus notas"] = (
+            por_alumno["Puntos máximos"].sum(min_count=1)
+        )
+
+    elif materia in (
+        "Algoritmos y Estructuras de Datos",
+        "Probabilidad y Estadística",
+    ):
+        maximos = calificaciones["Puntos máximos"].dropna()
+
+        if not maximos.eq(100).all():
+            raise ValueError(
+                f"El promedio de {materia} requiere notas sobre 100 puntos."
+            )
+
+        resultado["Resultado observado"] = (
+            por_alumno["Puntos obtenidos"].mean()
+        )
+
+    else:
+        raise ValueError(
+            f"Falta definir el cálculo del resultado para {materia}."
+        )
+
+    resultado["Instrumentos disponibles"] = (
+        calificaciones["Instrumento"].nunique()
+    )
+
+    puntos = resultado["Resultado observado"]
+    con_resultado = puntos.notna()
+    clasificar = con_resultado.copy()
+    umbral_promocion = 85
+
+    if materia == "Álgebra":
+        maximo = resultado["Máximo de sus notas"]
+        resultado["Rendimiento observado (%)"] = 100 * puntos / maximo
+        clasificar &= maximo.eq(120).fillna(False)
+
+    elif materia == "Algoritmos y Estructuras de Datos":
+        umbral_promocion = 90
+
+    resultado["Condición académica"] = "Sin notas informadas"
+    resultado.loc[con_resultado, "Condición académica"] = "Pendiente"
+    resultado.loc[clasificar, "Condición académica"] = "Libre"
+
+    resultado.loc[
+        clasificar & puntos.ge(60),
+        "Condición académica",
+    ] = "Regular"
+
+    resultado.loc[
+        clasificar & puntos.ge(umbral_promocion),
+        "Condición académica",
+    ] = "Promociona"
+
+    return resultado.reset_index()
+
+def resumir_distribucion_resultados(resultados):
+    valores = resultados["Resultado observado"].dropna()
+
+    if valores.empty:
+        return pd.DataFrame(columns=["Intervalo", "Alumnos"])
+
+    limite_superior = max(10, 10 * ceil(valores.max() / 10))
+    limites = list(range(0, limite_superior + 1, 10))
+
+    etiquetas = [
+        f"{inicio} a {fin}"
+        for inicio, fin in zip(limites, limites[1:])
+    ]
+
+    intervalos = pd.cut(
+        valores,
+        bins=limites,
+        labels=etiquetas,
+        include_lowest=True,
+    )
+
+    return (
+        intervalos.value_counts(sort=False)
+        .rename_axis("Intervalo")
+        .reset_index(name="Alumnos")
+    )

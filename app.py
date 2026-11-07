@@ -1,12 +1,12 @@
 import streamlit as st
 
-from datos import detectar_materias, leer_matriculados,  leer_participacion, leer_trazabilidad
+from datos import detectar_materias, leer_matriculados,  leer_participacion, leer_trazabilidad, leer_calificaciones
 
 
-from procesamiento import consolidar_matricula, preparar_participacion, cruzar_matricula_participacion, clasificar_alertas, preparar_trazabilidad
+from procesamiento import consolidar_matricula, preparar_participacion, cruzar_matricula_participacion, clasificar_alertas, preparar_trazabilidad, preparar_calificaciones
 
 
-from vistas import mostrar_inicio, mostrar_matricula, mostrar_participacion, mostrar_trazabilidad
+from vistas import mostrar_inicio, mostrar_matricula, mostrar_participacion, mostrar_trazabilidad, mostrar_rendimiento, mostrar_individual
 
 
 st.set_page_config(
@@ -58,9 +58,12 @@ def pagina_participacion():
 
     try:
         participacion = leer_participacion(materia)
-
         participacion_alumnos = preparar_participacion(
             participacion
+        )
+
+        trazabilidad_alumnos = preparar_trazabilidad(
+            leer_trazabilidad(materia)
         )
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
@@ -69,6 +72,7 @@ def pagina_participacion():
     mostrar_participacion(
         participacion,
         participacion_alumnos,
+        trazabilidad_alumnos,
     )
 
 def pagina_trazabilidad():
@@ -92,6 +96,49 @@ def pagina_trazabilidad():
         trazabilidad_alumnos,
     )
 
+def pagina_rendimiento():
+    materia = st.session_state["materia_actual"]
+
+    try:
+        calificaciones = preparar_calificaciones(leer_calificaciones(materia))
+    except (FileNotFoundError, ValueError) as error:
+        st.error(str(error))
+        st.stop()
+
+    mostrar_rendimiento(calificaciones, materia)
+
+def pagina_individual():
+    materia = st.session_state["materia_actual"]
+
+    try:
+        matricula_actual = consolidar_matricula(
+            leer_matriculados(materia)
+        )
+        participacion_alumnos = preparar_participacion(
+            leer_participacion(materia)
+        )
+        base_alumnos = cruzar_matricula_participacion(
+            matricula_actual,
+            participacion_alumnos,
+        )
+        calificaciones = preparar_calificaciones(
+            leer_calificaciones(materia)
+        )
+    except (FileNotFoundError, ValueError) as error:
+        st.error(str(error))
+        st.stop()
+
+    def cargar_historial(usuario):
+        trazabilidad = leer_trazabilidad(materia)
+        return preparar_trazabilidad(trazabilidad, usuario=usuario)
+
+    mostrar_individual(
+        base_alumnos,
+        calificaciones,
+        materia,
+        cargar_historial,
+    )
+
 paginas = {
     "inicio": st.Page(
         pagina_inicio,
@@ -112,7 +159,17 @@ paginas = {
         pagina_trazabilidad,
         title="Trazabilidad",
         url_path="trazabilidad",
-    )
+    ),
+    "rendimiento": st.Page(
+        pagina_rendimiento,
+        title="Rendimiento académico",
+        url_path="rendimiento",
+    ),
+    "individual": st.Page(
+        pagina_individual,
+        title="Individual",
+        url_path="individual",
+    ),
 }
 
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import streamlit as st
+from html import unescape
 
 CARPETA_PROYECTO = Path(__file__).resolve().parent
 
@@ -156,3 +157,71 @@ def leer_trazabilidad(materia):
         estado.st_mtime_ns,
         estado.st_size,
     )
+
+def leer_calificaciones(materia):
+    carpeta = CARPETA_DATOS / materia
+
+    archivos = sorted(
+        archivo
+        for archivo in carpeta.glob("calificaciones_alumnos_*.xlsx")
+        if archivo.is_file()
+    )
+
+    if not archivos:
+        raise FileNotFoundError(
+            f"No se encontraron archivos de calificaciones para {materia}."
+        )
+
+    columnas = [
+        "Usuario",
+        "Apellido",
+        "Nombre",
+        "Nota",
+        "Observaciones",
+        "Detalle",
+    ]
+
+    tablas = []
+    instrumentos = set()
+
+    for archivo in archivos:
+        contenido = pd.read_excel(
+            archivo,
+            header=None,
+            dtype="string",
+        )
+
+        if (
+            len(contenido) < 7
+            or contenido.iloc[6].fillna("").tolist() != columnas
+        ):
+            raise ValueError(
+                f"Encabezado de calificaciones inesperado en {archivo.name}."
+            )
+
+        etiqueta, _, nombre = str(contenido.iat[2, 0]).partition(":")
+        instrumento = unescape(nombre).strip()
+
+        if etiqueta.strip() != "Calificación" or not instrumento:
+            raise ValueError(
+                f"No se pudo identificar el instrumento en {archivo.name}."
+            )
+
+        clave_instrumento = instrumento.casefold()
+
+        if clave_instrumento in instrumentos:
+            raise ValueError(
+                f"Hay más de un archivo para {instrumento} en {materia}."
+            )
+
+        instrumentos.add(clave_instrumento)
+
+        tabla = contenido.iloc[7:].copy()
+        tabla.columns = columnas
+        tabla = tabla.loc[tabla["Usuario"].notna()].copy()
+        tabla.insert(0, "Instrumento", instrumento)
+        tabla["Archivo de origen"] = archivo.name
+
+        tablas.append(tabla)
+
+    return pd.concat(tablas, ignore_index=True)
