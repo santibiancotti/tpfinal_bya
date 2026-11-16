@@ -9,6 +9,35 @@ CARPETA_DATOS = (
     CARPETA_PROYECTO.parent / "Datos_LMS_Anonimizados"
 )
 
+@st.cache_data(show_spinner=False, max_entries=48)
+def _leer_excel_cache(ruta, modificacion_ns, tamano, opciones):
+    return pd.read_excel(ruta, **opciones)
+
+
+def leer_excel(archivo, **opciones):
+    estado = archivo.stat()
+    return _leer_excel_cache(
+        str(archivo), estado.st_mtime_ns, estado.st_size, opciones
+    )
+
+
+def leer_periodo_reporte(materia, tipo="participacion"):
+    archivo = buscar_reporte(materia, tipo)
+    cabecera = leer_excel(archivo, header=None, nrows=4)
+    fechas = []
+    for etiqueta in ("Fecha desde", "Fecha Hasta"):
+        valores = [
+            str(valor).partition(":")[2].strip()
+            for valor in cabecera.iloc[3].dropna()
+            if str(valor).casefold().startswith(etiqueta.casefold() + ":")
+        ]
+        if len(valores) != 1:
+            raise ValueError(f"No se pudo identificar {etiqueta} en {archivo.name}.")
+        fechas.append(pd.to_datetime(valores[0], dayfirst=True, errors="raise").date())
+    if fechas[0] > fechas[1]:
+        raise ValueError(f"Período inválido en {archivo.name}.")
+    return tuple(fechas)
+
 def detectar_materias():
     carpeta_matriculados = CARPETA_DATOS / "Matriculados"
 
@@ -42,7 +71,7 @@ def leer_matriculados(materia):
             f"No se encuentra el archivo: {archivo}"
         )
 
-    matriculados = pd.read_excel(
+    matriculados = leer_excel(
         archivo,
         header=1,
         dtype={"Identificación": "string"},
@@ -101,7 +130,7 @@ def leer_participacion(materia):
         "Tiempo estimado de uso",
     ]
 
-    participacion = pd.read_excel(
+    participacion = leer_excel(
         archivo,
         header=5,
         usecols=columnas,
@@ -185,7 +214,7 @@ def leer_calificaciones(materia):
     instrumentos = set()
 
     for archivo in archivos:
-        contenido = pd.read_excel(
+        contenido = leer_excel(
             archivo,
             header=None,
             dtype="string",

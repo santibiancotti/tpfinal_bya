@@ -339,7 +339,7 @@ def preparar_trazabilidad(trazabilidad, usuario=None):
 
     alumnos["Día de semana"] = (
         alumnos["Fecha"]
-        .dt.dayofweek
+        .dt.day_of_week
         .astype("Int64")
     )
 
@@ -587,6 +587,14 @@ def resumir_resultados_alumnos(calificaciones, materia):
     )
 
     if materia == "Álgebra":
+        maximos = calificaciones.groupby("Instrumento")["Puntos máximos"]
+        if maximos.nunique().gt(1).any():
+            raise ValueError("Hay instrumentos de Álgebra con más de un máximo informado.")
+        cantidades = maximos.first().dropna().value_counts()
+        permitidas = {10: 5, 25: 2, 20: 1}
+        if any(maximo not in permitidas or cantidad > permitidas[maximo]
+               for maximo, cantidad in cantidades.items()):
+            raise ValueError("Los máximos de Álgebra no coinciden con el esquema de 120 puntos.")
         resultado["Resultado observado"] = (
             por_alumno["Puntos obtenidos"].sum(min_count=1)
         )
@@ -626,7 +634,10 @@ def resumir_resultados_alumnos(calificaciones, materia):
     if materia == "Álgebra":
         maximo = resultado["Máximo de sus notas"]
         resultado["Rendimiento observado (%)"] = 100 * puntos / maximo
-        clasificar &= maximo.eq(120).fillna(False)
+        resultado["Resultado equivalente sobre 120"] = 120 * puntos / maximo
+        # Con notas parciales se conservan las proporciones de 60/120 y 85/120.
+        puntos = resultado["Resultado equivalente sobre 120"]
+        clasificar &= maximo.gt(0).fillna(False)
 
     elif materia == "Algoritmos y Estructuras de Datos":
         umbral_promocion = 90
@@ -673,3 +684,80 @@ def resumir_distribucion_resultados(resultados):
         .rename_axis("Intervalo")
         .reset_index(name="Alumnos")
     )
+
+
+CONDICIONES_ACADEMICAS = [
+    "Libre", "Regular", "Promociona", "Pendiente", "Sin notas informadas"
+]
+
+
+def resumir_condiciones(resultados):
+    resumen = (
+        resultados["Condición académica"].value_counts()
+        .reindex(CONDICIONES_ACADEMICAS, fill_value=0)
+        .rename_axis("Condición académica").reset_index(name="Alumnos")
+    )
+    resumen["Porcentaje (%)"] = (
+        100 * resumen["Alumnos"] / len(resultados) if len(resultados) else float("nan")
+    )
+    return resumen
+
+
+def cruzar_resultados_participacion(base_alumnos, resultados, materia, eventos=None):
+    # El cruce se hace dentro de una materia y con una fila por estudiante.
+    datos = base_alumnos.merge(
+        resultados.drop(columns=["Apellido", "Nombre"]),
+        left_on="Identificación", right_on="Usuario",
+        how="outer", validate="one_to_one",
+    )
+    datos["Identificación"] = datos["Identificación"].combine_first(datos["Usuario"])
+    datos["Condición académica"] = datos["Condición académica"].fillna("Sin notas informadas")
+    datos["Situación de actividad"] = datos["Situación de actividad"].fillna(
+        "Sin registro en participación"
+    )
+    if eventos is not None:
+        resumen = eventos.groupby("Usuario").agg(
+            **{"Registros de trazabilidad": ("Usuario", "size"),
+               "Días con eventos": ("Día", "nunique")}
+        ).reset_index().rename(columns={"Usuario": "Identificación"})
+        datos = datos.merge(resumen, on="Identificación", how="left", validate="one_to_one")
+        for columna in ["Registros de trazabilidad", "Días con eventos"]:
+            datos[columna] = datos[columna].fillna(0).astype("Int64")
+    datos["Materia"] = materia
+    return datos
+
+
+def calcular_correlacion(datos, variable, resultado="Resultado observado"):
+    pares = datos[[variable, resultado]].dropna()
+    if len(pares) < 3:
+        return pares, None, "Se requieren al menos 3 observaciones emparejadas."
+    if pares[variable].nunique() < 2 or pares[resultado].nunique() < 2:
+        return pares, None, "No se calcula correlación porque una variable es constante."
+    return pares, float(pares[variable].corr(pares[resultado])), None
+
+
+def resumir_materia(materia, participacion, alumnos, resultados, periodo):
+    actividad = resumir_participacion(alumnos)
+    valores = resultados["Resultado observado"].dropna()
+    return {
+        "Materia": materia,
+        "Desde": periodo[0], "Hasta": periodo[1],
+        "Usuarios del reporte": len(participacion),
+        "Alumnos del aula": len(alumnos),
+        "Con dato de actividad": actividad["con_dato_actividad"],
+        "Activos": actividad["con_actividad"],
+        "Inactivos": actividad["sin_actividad"],
+        "Activos (%)": actividad["cobertura"],
+        "Inactivos (%)": (
+            100 * actividad["sin_actividad"] / actividad["con_dato_actividad"]
+            if actividad["con_dato_actividad"] else None
+        ),
+        "Con resultado observado": len(valores),
+        "Resultado promedio": float(valores.mean()) if len(valores) else None,
+        "Rendimiento promedio sobre notas informadas (%)": (
+            resultados["Rendimiento observado (%)"].mean()
+            if materia == "Álgebra" else valores.mean()
+        ),
+        "Escala": "Suma / 120 (parcial si faltan instrumentos)" if materia == "Álgebra" else "Promedio / 100",
+        "Tiempo promedio estimado (min)": actividad["tiempo_promedio"],
+    }
