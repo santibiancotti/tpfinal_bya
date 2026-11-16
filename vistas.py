@@ -6,7 +6,8 @@ from hashlib import sha256
 
 from procesamiento import (FILTROS_POBLACION, seleccionar_poblacion, filtrar_situaciones, resumir_actividad, 
                            filtrar_trazabilidad, DIAS_SEMANA, resumir_horarios, resumir_accesos_diarios, resumir_participacion, resumir_instrumentos,
-                           resumir_resultados_alumnos, resumir_distribucion_resultados)
+                           resumir_resultados_alumnos, resumir_distribucion_resultados,
+                           resumir_condiciones, calcular_correlacion)
 
 def mostrar_inicio(paginas):
     st.title("Seguimiento académico")
@@ -69,12 +70,6 @@ def mostrar_inicio(paginas):
                     st.write(descripcion)
 
                     disponible = clave in paginas
-
-                    st.caption(
-                        "Vista inicial disponible"
-                        if disponible
-                        else "En preparación"
-                    )
 
                     if st.button(
                         "Abrir vista",
@@ -345,12 +340,15 @@ def mostrar_participacion(
 
         st.caption(
             "La serie usa la acción Acceder del reporte de trazabilidad. "
-            "Incluye las repeticiones marcadas."
+            "Incluye las repeticiones marcadas. Los accesos son eventos; "
+            "las fuentes no identifican sesiones. Este filtro solo afecta la evolución; "
+            "el resumen utiliza el período completo del reporte."
         )
 
         st.dataframe(datos_grafico, hide_index=True)
 
 def seleccionar_filtros_actividad(eventos, prefijo):
+    prefijo = f"{prefijo}_{st.session_state.get('materia_actual', '')}"
     fecha_min = eventos["Fecha"].min().date()
     fecha_max = eventos["Fecha"].max().date()
 
@@ -452,6 +450,8 @@ def mostrar_trazabilidad(trazabilidad, trazabilidad_alumnos,):
         "Repeticiones exactas adicionales",
         cantidad_repeticiones,
     )
+    dias_periodo = (pd.Timestamp(periodo[1]) - pd.Timestamp(periodo[0])).days + 1
+    st.metric("Interacciones promedio por día del período", f"{len(trazabilidad_alumnos) / dias_periodo:.2f}")
 
     st.caption(
         "El total del reporte incluye todos los perfiles "
@@ -662,6 +662,17 @@ def mostrar_rendimiento(calificaciones, materia):
 
         st.dataframe(distribucion, hide_index=True)
 
+        st.subheader("Condición según notas informadas")
+        condiciones = resumir_condiciones(resultados)
+        st.bar_chart(condiciones, x="Condición académica", y="Alumnos", sort=False)
+        st.dataframe(condiciones.round({"Porcentaje (%)": 2}), hide_index=True)
+        st.caption(
+            f"Denominador: {len(resultados)} estudiantes presentes en calificaciones. "
+            "No incluye alumnos del aula sin filas en esos archivos. "
+            "Las notas faltantes no se convierten en cero."
+        )
+        mostrar_criterio_academico(materia)
+
 def mostrar_semaforo(condicion):
     colores = {
         "Promociona": "#15803D",
@@ -823,6 +834,7 @@ def mostrar_individual(base_alumnos, calificaciones, materia, cargar_historial):
                     f"Las evaluaciones con nota cubren {maximo:.0f} "
                     "de los 120 puntos del esquema."
                 )
+                mostrar_criterio_academico(materia)
 
             elif materia == "Probabilidad y Estadística":
                 st.caption(
@@ -856,3 +868,119 @@ def mostrar_individual(base_alumnos, calificaciones, materia, cargar_historial):
             notas[columnas].round({"Porcentaje obtenido": 2}),
             hide_index=True,
         )
+
+
+def mostrar_criterio_academico(materia):
+    if materia == "Álgebra":
+        st.caption(
+            "Álgebra suma puntos. La condición conserva las proporciones del esquema: "
+            "regular desde 60/120 (50 %) y promociona desde 85/120 (70,83 %). "
+            "Con notas parciales se aplica esa proporción sobre el máximo de las notas "
+            "informadas de cada estudiante. Se actualiza al incorporar nuevas notas."
+        )
+    else:
+        promocion = 90 if materia == "Algoritmos y Estructuras de Datos" else 85
+        st.caption(
+            f"Promedio sobre 100 de las notas informadas, incluido el recuperatorio si existe. "
+            f"Libre: <60; regular: desde 60 y <{promocion}; promociona: desde {promocion}. "
+            "El resultado es observado y puede cambiar con nuevas notas."
+        )
+
+
+def mostrar_general(resumen, alumnos, resultados, tendencias):
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Asignaturas", len(resumen))
+    col2.metric("Estudiantes únicos en las aulas", alumnos["Usuario"].nunique())
+    col3.metric("Registros alumno-materia en las aulas", len(alumnos))
+    st.caption(
+        "Los estudiantes únicos se deduplican por identificador entre materias. "
+        "Los indicadores por materia y sus sumas cuentan registros alumno-materia."
+    )
+    st.dataframe(resumen.round(2), hide_index=True)
+    actividad = resumen.melt(
+        id_vars="Materia", value_vars=["Activos (%)", "Inactivos (%)"],
+        var_name="Actividad", value_name="Porcentaje (%)",
+    )
+    st.bar_chart(actividad, x="Materia", y="Porcentaje (%)", color="Actividad", stack=False)
+    st.caption(
+        "Activo: al menos una interacción durante el período completo indicado por materia. "
+        "Denominador de ambos porcentajes: alumnos del aula con dato de actividad. "
+        "Los valores faltantes no se consideran inactivos."
+    )
+    st.subheader("Resultados por asignatura")
+    for materia in resumen["Materia"]:
+        notas = resultados.loc[resultados["Materia"].eq(materia)]
+        with st.expander(materia, expanded=True):
+            distribucion = resumir_distribucion_resultados(notas)
+            if distribucion.empty:
+                st.info("Sin resultados observados.")
+            else:
+                st.bar_chart(distribucion, x="Intervalo", y="Alumnos", sort=False, height=200)
+            st.dataframe(resumir_condiciones(notas).round(2), hide_index=True)
+            st.caption(
+                f"Denominador de las condiciones: {len(notas)} estudiantes en calificaciones. "
+                "Histograma del resultado observado: suma en Álgebra, promedio en las otras materias. "
+                "Intervalos cerrados a derecha; el primero incluye cero."
+            )
+            mostrar_criterio_academico(materia)
+    st.caption(
+        "Las sumas parciales de Álgebra tienen distinto máximo según las notas informadas. "
+        "No se calcula un promedio global de resultados con escalas diferentes. "
+        "El promedio por materia usa solo estudiantes con resultado observado."
+    )
+    st.subheader("Tendencia diaria de accesos a secciones")
+    st.line_chart(tendencias, x="Día", y="Accesos a secciones", color="Materia")
+    st.caption(
+        "Acción Acceder de trazabilidad; incluye repeticiones y días sin accesos dentro "
+        "del período de cada reporte. Los accesos son eventos; las fuentes no identifican sesiones."
+    )
+
+
+def mostrar_relacion(datos, materia):
+    poblacion = st.radio("Población a consultar", list(FILTROS_POBLACION),
+                         index=1, horizontal=True, key=f"relacion_poblacion_{materia}")
+    seleccion = seleccionar_poblacion(datos, poblacion)
+    st.caption(
+        f"Población: {poblacion}, {len(seleccion)} registros estudiante-materia. "
+        "Participación del período completo del reporte y notas disponibles al exportar. "
+        "Cada estudiante aporta como máximo una observación a cada cruce."
+    )
+    if seleccion.empty:
+        st.info("No hay estudiantes en esta población.")
+        return
+    variables = ["Interacciones", "Tiempo de uso (minutos)"]
+    if "Registros de trazabilidad" in seleccion:
+        variables += ["Registros de trazabilidad", "Días con eventos"]
+    variable = st.selectbox("Indicador de participación o trazabilidad", variables,
+                            key=f"relacion_variable_{materia}")
+    resultado = "Rendimiento observado (%)" if materia == "Álgebra" else "Resultado observado"
+    pares, correlacion, motivo = calcular_correlacion(seleccion, variable, resultado)
+    col1, col2 = st.columns(2)
+    col1.metric("Observaciones emparejadas", len(pares))
+    col2.metric("Correlación de Pearson", f"{correlacion:.3f}" if correlacion is not None else "No calculable")
+    if not pares.empty:
+        st.scatter_chart(pares, x=variable, y=resultado, height=350)
+    if motivo:
+        st.info(motivo)
+    st.caption(
+        f"Se excluyen {len(seleccion) - len(pares)} registros sin ambos valores. "
+        "Tiempo de uso es una estimación en minutos. La correlación describe una asociación "
+        "y no demuestra causalidad. No se estima una calificación final."
+    )
+    if materia == "Álgebra":
+        st.caption("La dispersión usa el porcentaje sobre las notas informadas de cada estudiante, "
+                   "para distinguirlo de la suma de puntos con máximos parciales diferentes.")
+    mostrar_criterio_academico(materia)
+    st.subheader("Patrones de actividad y condición académica")
+    grupos = seleccion.groupby(
+        ["Situación de actividad", "Condición académica"], as_index=False
+    ).agg(Estudiantes=("Identificación", "size"))
+    grupos["Porcentaje de la población (%)"] = 100 * grupos["Estudiantes"] / len(seleccion)
+    st.bar_chart(grupos, x="Condición académica", y="Estudiantes", color="Situación de actividad", stack=False)
+    st.dataframe(grupos.round(2), hide_index=True)
+    st.caption(
+        "Grupos descriptivos definidos por la actividad registrada (>0 interacciones) "
+        "y la condición calculada con las reglas académicas. Se conservan las categorías "
+        "sin datos. Los porcentajes usan toda la población seleccionada. "
+        "No se asigna una categoría nueva de riesgo. El detalle personal se consulta en Individual."
+    )
