@@ -7,12 +7,15 @@ Aplicación local con siete dashboards independientes. La landing conserva sus b
 Desde PowerShell, en la carpeta de este proyecto:
 
 ```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
 Abrir la dirección local que muestra Streamlit. Elegir una vista y una materia; General permite seleccionar varias materias. General muestra primero sus indicadores: abrir **Tendencia diaria de accesos a secciones** para consultar la evolución. En Participación, abrir **Evolución de accesos**. En Notas y Participación, abrir **Incluir indicadores de trazabilidad** para agregarlos al selector del gráfico. En Individual, elegir un estudiante y abrir Notas o Historial de actividad.
 
 Las lecturas y los resultados derivados se cachean por materia y firma de sus fuentes (ruta, fecha de modificación y tamaño). Las calificaciones incluyen la lista de todos sus instrumentos. El botón **Actualizar fuentes** vacía todas las cachés; las secciones abiertas se actualizan y las cerradas se leerán al abrirlas. El historial, los detalles y los reportes originales solo se preparan y envían cuando se abre la sección correspondiente. La primera lectura de un Excel grande puede tardar y se informa qué se está cargando.
+
+La lectura completa de trazabilidad usa `python-calamine==0.9.1`, elegido mediante mediciones sin caché y comparación de los datos completos. Las fuentes pequeñas y cabeceras mantienen openpyxl. Se conserva el almacenamiento de caché en memoria; no se generan archivos derivados para ejecutar la aplicación. Los tiempos y la justificación están en [RENDIMIENTO.md](RENDIMIENTO.md).
 
 ## Criterios de cálculo
 
@@ -46,7 +49,7 @@ Pruebas reproducibles:
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-Se ejecutaron 23 pruebas. Trece verifican procesamiento y caché con casos controlados: límites académicos, Álgebra parcial/completa, datos vacíos, faltantes y ceros, formatos desconocidos, duplicados, pares insuficientes/constantes, cardinalidad de uniones, fechas inclusivas, repeticiones y equivalencia de los resúmenes compactos. Cuatro pruebas de Streamlit AppTest ejecutan las siete vistas con las tres materias y sus filtros. Seis pruebas puntuales comprueban la carga diferida real, la reutilización del historial, la ausencia de tablas ocultas y la actualización automática y manual de fuentes. Las pruebas de la app requieren las fuentes locales; se omiten si no está esa carpeta.
+Se ejecutaron 25 pruebas. Quince verifican lectura, procesamiento y caché con casos controlados: fechas e identificadores del Excel, valores faltantes y textos, límites académicos, Álgebra parcial/completa, datos vacíos, faltantes y ceros, formatos desconocidos, duplicados, pares insuficientes/constantes, cardinalidad de uniones, fechas inclusivas, repeticiones y equivalencia de los resúmenes compactos. Cuatro pruebas de Streamlit AppTest ejecutan las siete vistas con las tres materias y sus filtros. Seis pruebas puntuales comprueban la carga diferida real, la reutilización del historial, la ausencia de tablas ocultas y la actualización automática y manual de fuentes. Las pruebas de la app requieren las fuentes locales; se omiten si no está esa carpeta.
 
 Además se inició el servidor real, se comprobó su endpoint de salud y se revisaron en navegador el cambio del mapa entre Algoritmos y Álgebra, el semáforo, las notas, la apertura del historial, la dispersión de Notas y Participación y la consolidación de las tres materias en General. La cobertura exhaustiva de materias y filtros corresponde a AppTest; los límites y casos sintéticos se comprobaron a nivel de procesamiento.
 
