@@ -6,6 +6,7 @@ import streamlit as st
 from streamlit.testing.v1 import AppTest
 
 import datos
+import procesamiento
 from test_resumen_trazabilidad import reporte
 
 
@@ -16,6 +17,9 @@ class CargasDiferidas(unittest.TestCase):
         self.parche = patch("datos.leer_trazabilidad", side_effect=lambda materia: reporte())
         self.leer = self.parche.start()
         self.addCleanup(self.parche.stop)
+        self.parche_preparacion = patch("datos.preparar_trazabilidad", wraps=procesamiento.preparar_trazabilidad)
+        self.preparar = self.parche_preparacion.start()
+        self.addCleanup(self.parche_preparacion.stop)
         self.app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"),
                                     default_timeout=30).run()
 
@@ -50,6 +54,7 @@ class CargasDiferidas(unittest.TestCase):
         self.assertEqual(self.leer.call_count, len(materias))
         self.cambiar_seccion("general_tendencia", True)
         self.assertEqual(self.leer.call_count, 2 * len(materias))
+        self.assertEqual(self.preparar.call_count, 0)
 
     def test_participacion_carga_solo_la_evolucion_abierta(self):
         self.abrir("participacion")
@@ -57,6 +62,7 @@ class CargasDiferidas(unittest.TestCase):
         self.assertEqual(self.leer.call_count, 0)
         self.cambiar_seccion(f"participacion_pestanas_{materia}", "Evolución de accesos")
         self.assertEqual(self.leer.call_count, 1)
+        self.assertEqual(self.preparar.call_count, 0)
         self.app.date_input[0].set_value(self.app.date_input[0].value).run()
         self.comprobar()
         self.assertEqual(self.leer.call_count, 1)
@@ -76,8 +82,10 @@ class CargasDiferidas(unittest.TestCase):
         materia = self.app.selectbox(key="selector_materia").value
         self.assertEqual(self.leer.call_count, 1)
         self.assertEqual(len(self.app.dataframe), 0)
+        self.assertEqual(self.preparar.call_count, 0)
         self.cambiar_seccion(f"trazabilidad_pestanas_{materia}", "Detalle")
         self.assertEqual(self.leer.call_count, 2)
+        self.assertEqual(self.preparar.call_count, 1)
         self.assertEqual(len(self.app.dataframe), 1)
         self.app.run()
         self.comprobar()

@@ -10,9 +10,9 @@ Desde PowerShell, en la carpeta de este proyecto:
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-Abrir la dirección local que muestra Streamlit. Elegir una vista y una materia; General permite seleccionar varias materias. En Individual, elegir un estudiante y abrir Notas o Historial de actividad. El historial se carga únicamente cuando su pestaña está abierta.
+Abrir la dirección local que muestra Streamlit. Elegir una vista y una materia; General permite seleccionar varias materias. General muestra primero sus indicadores: abrir **Tendencia diaria de accesos a secciones** para consultar la evolución. En Participación, abrir **Evolución de accesos**. En Notas y Participación, abrir **Incluir indicadores de trazabilidad** para agregarlos al selector del gráfico. En Individual, elegir un estudiante y abrir Notas o Historial de actividad.
 
-Las lecturas se cachean por ruta, fecha de modificación y tamaño. La trazabilidad preparada también distingue la materia. El botón **Actualizar fuentes** vacía todas las cachés y vuelve a leer los archivos.
+Las lecturas y los resultados derivados se cachean por materia y firma de sus fuentes (ruta, fecha de modificación y tamaño). Las calificaciones incluyen la lista de todos sus instrumentos. El botón **Actualizar fuentes** vacía todas las cachés; las secciones abiertas se actualizan y las cerradas se leerán al abrirlas. El historial, los detalles y los reportes originales solo se preparan y envían cuando se abre la sección correspondiente. La primera lectura de un Excel grande puede tardar y se informa qué se está cargando.
 
 ## Criterios de cálculo
 
@@ -46,7 +46,7 @@ Pruebas reproducibles:
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-Se ejecutaron 14 pruebas. Diez verifican procesamiento y caché con casos controlados: límites académicos, Álgebra parcial/completa, datos vacíos, faltantes y ceros, formatos desconocidos, duplicados, pares insuficientes/constantes, cardinalidad de uniones, fechas inclusivas y repeticiones. Cuatro pruebas de Streamlit AppTest ejecutan las siete vistas con las tres materias, cambian filtros, indicadores y estudiante, verifican que el mapa reciba datos diferentes por materia y que Individual no lea trazabilidad antes de abrir el historial. Las pruebas de la app requieren las fuentes locales; se omiten si no está esa carpeta.
+Se ejecutaron 23 pruebas. Trece verifican procesamiento y caché con casos controlados: límites académicos, Álgebra parcial/completa, datos vacíos, faltantes y ceros, formatos desconocidos, duplicados, pares insuficientes/constantes, cardinalidad de uniones, fechas inclusivas, repeticiones y equivalencia de los resúmenes compactos. Cuatro pruebas de Streamlit AppTest ejecutan las siete vistas con las tres materias y sus filtros. Seis pruebas puntuales comprueban la carga diferida real, la reutilización del historial, la ausencia de tablas ocultas y la actualización automática y manual de fuentes. Las pruebas de la app requieren las fuentes locales; se omiten si no está esa carpeta.
 
 Además se inició el servidor real, se comprobó su endpoint de salud y se revisaron en navegador el cambio del mapa entre Algoritmos y Álgebra, el semáforo, las notas, la apertura del historial, la dispersión de Notas y Participación y la consolidación de las tres materias en General. La cobertura exhaustiva de materias y filtros corresponde a AppTest; los límites y casos sintéticos se comprobaron a nivel de procesamiento.
 
@@ -60,7 +60,7 @@ Conteos observados en las fuentes del 01/05/2025 al 24/10/2025:
 
 General consolida 319 estudiantes únicos y 957 registros alumno-materia, con 817 registros activos. El cruce histórico de Algoritmos coincide: vigentes 163 con actividad y 2 sin actividad; bajas 2 con actividad; sin registro de matrícula 111 con actividad y 41 sin actividad. Estos valores son resultados de la comprobación, no constantes del producto.
 
-Se comprobó que las uniones no multiplican estudiantes. La carga de matrícula, participación y calificaciones para Individual tardó entre 0,35 y 0,70 s sin caché y entre 0,03 y 0,06 s con caché en esta máquina; estas cifras no incluyen renderizado ni primera lectura del historial. La primera lectura de los XLSX grandes de trazabilidad sigue siendo el paso más costoso. Los hashes de los 26 XLSX permanecieron iguales durante la validación.
+Se comprobó que las uniones no multiplican estudiantes. Los resúmenes optimizados se contrastaron con el procesamiento anterior en las tres materias: conteos, filtros, repeticiones, mapas, series, historiales y calificaciones coinciden. Las mediciones antes/después y sus condiciones están en [RENDIMIENTO.md](RENDIMIENTO.md). Los hashes de los 26 XLSX permanecieron iguales durante la validación.
 
 ## Limitaciones de las fuentes y alcance
 

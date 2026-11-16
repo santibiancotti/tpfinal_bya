@@ -1,0 +1,851 @@
+{
+  "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "streamlit": "1.66.1",
+  "fuentes_sha256": {
+    "Algoritmos y Estructuras de Datos\\calificaciones_alumnos_20251024_115518.xlsx": "380b6e9cd4df43f9c2c2b6a5c2aa0f4e67f9d04cf3eb5922e5556b2eb274206a",
+    "Algoritmos y Estructuras de Datos\\calificaciones_alumnos_20251024_115523.xlsx": "99646a043f0032a6c9894b04260389fbf0493b28e73d96916a74b6413f4d1e60",
+    "Algoritmos y Estructuras de Datos\\calificaciones_alumnos_20251024_115528.xlsx": "8f2a00d409e233aa1f4b04c97c4a290d35730487dd3997fdc54e745eb49f3f5e",
+    "Algoritmos y Estructuras de Datos\\calificaciones_alumnos_20251024_115533.xlsx": "84c45e14cd96c5bcab44d820cb4459ddf0e4322d3ec1a078034511d55b2ef7f5",
+    "Algoritmos y Estructuras de Datos\\calificaciones_alumnos_20251024_115538.xlsx": "8764efa951b189e28c5c794f0f244d248814d345ed736552be8b7c973cd94fd2",
+    "Algoritmos y Estructuras de Datos\\reporte_participacion_20251024_115446.xlsx": "0509dc4720a6bdf9e9f88089ee71fde65e6f94197901db596fbef8612eb1ec89",
+    "Algoritmos y Estructuras de Datos\\reporte_trazabilidad_20251024_115443.xlsx": "6dfea1ef32893df2e2ea0d1a4986cbedea5501637fa7c218efc42fde6d382bb9",
+    "Matriculados\\Algoritmos y Estructuras de Datos.xlsx": "50e674418e0a62d659c1db7ab72d8ec527e024401732c65d2bc252db1f0ab510",
+    "Matriculados\\Probabilidad y Estadística.xlsx": "3b826c5335276765a5346116c7a5f7a94cc891b510b165af6c0eb4539f493674",
+    "Matriculados\\Álgebra.xlsx": "31ebb2135c495db4a963f17ad4777f284b223b1a9aa80670a898b62cffa97f57",
+    "Probabilidad y Estadística\\calificaciones_alumnos_20251024_115041.xlsx": "d77b9704621a61e7be357f02ef1265c1b850b081a3752ef914509cd533d40b10",
+    "Probabilidad y Estadística\\calificaciones_alumnos_20251024_115045.xlsx": "d7bc33b4b24096845b23deff02bd4dd30a6a6922119d57c02849400d3483c6bd",
+    "Probabilidad y Estadística\\calificaciones_alumnos_20251024_115049.xlsx": "af78ecd98289238f163b24a53604089208faaa41df3cef239076f7b54124b513",
+    "Probabilidad y Estadística\\calificaciones_alumnos_20251024_115055.xlsx": "ee889cd3de91ceea96294c13be5c93f69431ab6a9e3d31ae7ebf43cd715f3be2",
+    "Probabilidad y Estadística\\calificaciones_alumnos_20251024_115059.xlsx": "3f660b17fd635d8c2215c8768a0f90503883718aa9b388980b04f8669993ba1e",
+    "Probabilidad y Estadística\\calificaciones_alumnos_20251024_115102.xlsx": "a7a40643462b160a2cb492bc02142be850af2a7fbc3521076bd0eeb185008c97",
+    "Probabilidad y Estadística\\calificaciones_alumnos_20251024_115105.xlsx": "7e7a7a18814fcdc0fbcad670f8295c151bc0f03b3396ec8c7d1888839260a6d5",
+    "Probabilidad y Estadística\\calificaciones_alumnos_20251024_115127.xlsx": "79082e7a0eba941374792f6951068451d5f79552e7fd0bc740cbe2f66f9c86f5",
+    "Probabilidad y Estadística\\calificaciones_alumnos_20251024_115130.xlsx": "2dd786f3a633e7beaa7b1fcdf4bb7705ba7323f447fad022ef524a5fc03092a9",
+    "Probabilidad y Estadística\\reporte_participacion_20251024_115203.xlsx": "3f78de80bcdcc3e3c4d89c30d9d9de78bc369dc190abda25de15b71e50126602",
+    "Probabilidad y Estadística\\reporte_trazabilidad_20251024_115157.xlsx": "1c0161f726798fd67887a679a436b4a1160eb00c7a6a1e29d50dcae3983be079",
+    "Álgebra\\calificaciones_alumnos_20251024_114929.xlsx": "8ec22a7eb47ea39fcb882fa70f6ee182d7f376b52505cf337980e4176329ada8",
+    "Álgebra\\calificaciones_alumnos_20251024_114941.xlsx": "60e683d04515300761926042d0ee2c57d5820154cdc449a9afd5f46612dbbef5",
+    "Álgebra\\calificaciones_alumnos_20251024_114944.xlsx": "457d24687a341249781c7bf9e015fa7144b35026d6b0ae69d139c436f88fd1c5",
+    "Álgebra\\reporte_participacion_20251024_115228.xlsx": "8d286f120e0423bb4fbbff23316d275a001e088688b30d3f14fac9d46cd003ae",
+    "Álgebra\\reporte_trazabilidad_20251024_115226.xlsx": "603850f095d26dfc35d218a013683bc9f49a28c55ce96f24cad05825063f7e0c"
+  },
+  "mediciones": [
+    {
+      "escenario": "general_frio",
+      "total_s": 1.9155652999761514,
+      "primera_metrica_s": 1.132000199984759,
+      "etapas_s": {
+        "presentacion": 0.7731753000989556,
+        "fuentes_cache": 0.07995179994031787,
+        "excel": 0.8902509001200087,
+        "preparacion": 0.0665808999328874,
+        "agregaciones": 0.0620539000374265
+      },
+      "llamadas": {
+        "presentacion": 9,
+        "fuentes_cache": 74,
+        "excel": 23,
+        "preparacion": 9,
+        "agregaciones": 15
+      },
+      "otros_s": 0.04355249984655529,
+      "bytes_tablas": 9472,
+      "metricas": {
+        "Asignaturas": "3",
+        "Estudiantes únicos en las aulas": "319",
+        "Registros alumno-materia en las aulas": "957"
+      }
+    },
+    {
+      "escenario": "general_reentrada",
+      "total_s": 0.2628679000190459,
+      "primera_metrica_s": 0.12135319999651983,
+      "etapas_s": {
+        "presentacion": 0.14250120002543554,
+        "fuentes_cache": 0.03480749990558252,
+        "agregaciones": 0.025127299944870174
+      },
+      "llamadas": {
+        "presentacion": 9,
+        "fuentes_cache": 42,
+        "agregaciones": 12
+      },
+      "otros_s": 0.06043190014315769,
+      "bytes_tablas": 9472,
+      "metricas": {
+        "Asignaturas": "3",
+        "Estudiantes únicos en las aulas": "319",
+        "Registros alumno-materia en las aulas": "957"
+      }
+    },
+    {
+      "escenario": "general_seleccion_una",
+      "total_s": 0.13705379999009892,
+      "primera_metrica_s": 0.05960480001522228,
+      "etapas_s": {
+        "presentacion": 0.07539259997429326,
+        "fuentes_cache": 0.008430600049905479,
+        "agregaciones": 0.010147900029551238
+      },
+      "llamadas": {
+        "presentacion": 4,
+        "fuentes_cache": 14,
+        "agregaciones": 4
+      },
+      "otros_s": 0.043082699936348945,
+      "bytes_tablas": 5936,
+      "metricas": {
+        "Asignaturas": "1",
+        "Estudiantes únicos en las aulas": "319",
+        "Registros alumno-materia en las aulas": "319"
+      }
+    },
+    {
+      "escenario": "general_seleccion_tres",
+      "total_s": 0.30542450002394617,
+      "primera_metrica_s": 0.14046060002874583,
+      "etapas_s": {
+        "presentacion": 0.1525258999899961,
+        "fuentes_cache": 0.039996800012886524,
+        "agregaciones": 0.03015679999953136
+      },
+      "llamadas": {
+        "presentacion": 8,
+        "fuentes_cache": 42,
+        "agregaciones": 12
+      },
+      "otros_s": 0.08274500002153218,
+      "bytes_tablas": 9472,
+      "metricas": {
+        "Asignaturas": "3",
+        "Estudiantes únicos en las aulas": "319",
+        "Registros alumno-materia en las aulas": "957"
+      }
+    },
+    {
+      "escenario": "general_abrir_tendencia",
+      "total_s": 52.46061299997382,
+      "primera_metrica_s": 0.11158440000144765,
+      "etapas_s": {
+        "presentacion": 0.2575391000136733,
+        "fuentes_cache": 0.16209250019164756,
+        "agregaciones": 0.4357358998968266,
+        "excel": 51.237428699969314,
+        "preparacion": 0.3044065000140108
+      },
+      "llamadas": {
+        "presentacion": 8,
+        "fuentes_cache": 69,
+        "agregaciones": 21,
+        "excel": 6,
+        "preparacion": 9
+      },
+      "otros_s": 0.06341029988834634,
+      "bytes_tablas": 9472,
+      "metricas": {
+        "Asignaturas": "3",
+        "Estudiantes únicos en las aulas": "319",
+        "Registros alumno-materia en las aulas": "957"
+      }
+    },
+    {
+      "escenario": "general_tendencia_repetida",
+      "total_s": 0.3273184999707155,
+      "primera_metrica_s": 0.10980799997923896,
+      "etapas_s": {
+        "presentacion": 0.20297250000294298,
+        "fuentes_cache": 0.03475880017504096,
+        "agregaciones": 0.020336999965365976
+      },
+      "llamadas": {
+        "presentacion": 8,
+        "fuentes_cache": 54,
+        "agregaciones": 12
+      },
+      "otros_s": 0.06925019982736558,
+      "bytes_tablas": 9472,
+      "metricas": {
+        "Asignaturas": "3",
+        "Estudiantes únicos en las aulas": "319",
+        "Registros alumno-materia en las aulas": "957"
+      }
+    },
+    {
+      "escenario": "general_actualizar_fuentes",
+      "total_s": 1.6543778000050224,
+      "primera_metrica_s": 1.530814099998679,
+      "etapas_s": {
+        "presentacion": 0.11786189995473251,
+        "fuentes_cache": 0.10948280012235045,
+        "excel": 1.2125396998017095,
+        "preparacion": 0.07841760001610965,
+        "agregaciones": 0.0745572000159882
+      },
+      "llamadas": {
+        "presentacion": 9,
+        "fuentes_cache": 74,
+        "excel": 23,
+        "preparacion": 9,
+        "agregaciones": 15
+      },
+      "otros_s": 0.061518600094132125,
+      "bytes_tablas": 9472,
+      "metricas": {
+        "Asignaturas": "3",
+        "Estudiantes únicos en las aulas": "319",
+        "Registros alumno-materia en las aulas": "957"
+      }
+    },
+    {
+      "escenario": "general_tendencia_tras_actualizar",
+      "total_s": 34.98823459999403,
+      "primera_metrica_s": 0.10189019999234006,
+      "etapas_s": {
+        "presentacion": 0.22694539988879114,
+        "fuentes_cache": 0.14915459987241775,
+        "agregaciones": 0.344145700102672,
+        "excel": 34.00441649998538,
+        "preparacion": 0.20841289998497814
+      },
+      "llamadas": {
+        "presentacion": 8,
+        "fuentes_cache": 69,
+        "agregaciones": 21,
+        "excel": 6,
+        "preparacion": 9
+      },
+      "otros_s": 0.05515950015978888,
+      "bytes_tablas": 9472,
+      "metricas": {
+        "Asignaturas": "3",
+        "Estudiantes únicos en las aulas": "319",
+        "Registros alumno-materia en las aulas": "957"
+      }
+    },
+    {
+      "escenario": "participacion_frio",
+      "total_s": 0.24524940003175288,
+      "primera_metrica_s": 0.23936840001260862,
+      "etapas_s": {
+        "presentacion": 0.026586300053168088,
+        "fuentes_cache": 0.009456900006625801,
+        "excel": 0.15243169997120276,
+        "preparacion": 0.021304399997461587,
+        "agregaciones": 0.000824499991722405
+      },
+      "llamadas": {
+        "presentacion": 4,
+        "fuentes_cache": 10,
+        "excel": 2,
+        "preparacion": 2,
+        "agregaciones": 1
+      },
+      "otros_s": 0.03464560001157224,
+      "bytes_tablas": 42462,
+      "metricas": {
+        "Usuarios en el reporte": "329",
+        "Alumnos": "319",
+        "Alumnos con actividad": "276",
+        "Alumnos sin actividad": "43",
+        "Cobertura de participación": "86,5 %",
+        "Tiempo promedio estimado por alumno": "137,5 min"
+      }
+    },
+    {
+      "escenario": "participacion_reentrada",
+      "total_s": 0.04122470004949719,
+      "primera_metrica_s": 0.03376010002102703,
+      "etapas_s": {
+        "presentacion": 0.01116080000065267,
+        "fuentes_cache": 0.005020800046622753,
+        "agregaciones": 0.0005040999967604876
+      },
+      "llamadas": {
+        "presentacion": 3,
+        "fuentes_cache": 7,
+        "agregaciones": 1
+      },
+      "otros_s": 0.024539000005461276,
+      "bytes_tablas": 42462,
+      "metricas": {
+        "Usuarios en el reporte": "329",
+        "Alumnos": "319",
+        "Alumnos con actividad": "276",
+        "Alumnos sin actividad": "43",
+        "Cobertura de participación": "86,5 %",
+        "Tiempo promedio estimado por alumno": "137,5 min"
+      }
+    },
+    {
+      "escenario": "participacion_cambio_materia",
+      "total_s": 0.17116080003324896,
+      "primera_metrica_s": 0.16479910002090037,
+      "etapas_s": {
+        "presentacion": 0.01093859999673441,
+        "fuentes_cache": 0.0055782998679205775,
+        "excel": 0.12442010000813752,
+        "preparacion": 0.007666599994990975,
+        "agregaciones": 0.00034060003235936165
+      },
+      "llamadas": {
+        "presentacion": 3,
+        "fuentes_cache": 10,
+        "excel": 2,
+        "preparacion": 2,
+        "agregaciones": 1
+      },
+      "otros_s": 0.022216600133106112,
+      "bytes_tablas": 42462,
+      "metricas": {
+        "Usuarios en el reporte": "328",
+        "Alumnos": "319",
+        "Alumnos con actividad": "273",
+        "Alumnos sin actividad": "46",
+        "Cobertura de participación": "85,6 %",
+        "Tiempo promedio estimado por alumno": "264,0 min"
+      }
+    },
+    {
+      "escenario": "participacion_abrir_evolucion",
+      "total_s": 14.419354400015436,
+      "primera_metrica_s": null,
+      "etapas_s": {
+        "presentacion": 0.0253915999783203,
+        "fuentes_cache": 0.05219110008329153,
+        "excel": 14.09260869998252,
+        "preparacion": 0.09068329998990521,
+        "agregaciones": 0.1264161000144668
+      },
+      "llamadas": {
+        "presentacion": 3,
+        "fuentes_cache": 13,
+        "excel": 1,
+        "preparacion": 3,
+        "agregaciones": 3
+      },
+      "otros_s": 0.03206359996693209,
+      "bytes_tablas": 5012,
+      "metricas": {
+        "Accesos a secciones en el período": "24391"
+      }
+    },
+    {
+      "escenario": "trazabilidad_frio",
+      "total_s": 9.665627099981066,
+      "primera_metrica_s": 9.621888199995738,
+      "etapas_s": {
+        "presentacion": 0.03811730002053082,
+        "fuentes_cache": 0.035698699997738004,
+        "excel": 9.389417700003833,
+        "preparacion": 0.060845699976198375,
+        "agregaciones": 0.11168820003513247
+      },
+      "llamadas": {
+        "presentacion": 4,
+        "fuentes_cache": 10,
+        "excel": 2,
+        "preparacion": 3,
+        "agregaciones": 3
+      },
+      "otros_s": 0.029859499947633594,
+      "bytes_tablas": 0,
+      "metricas": {
+        "Registros del reporte (total)": "45951",
+        "Registros seleccionados": "44543",
+        "Alumnos con eventos": "276",
+        "Repeticiones exactas adicionales": "171",
+        "Interacciones promedio por día del período": "549.91"
+      }
+    },
+    {
+      "escenario": "trazabilidad_reentrada",
+      "total_s": 0.06359010003507137,
+      "primera_metrica_s": 0.03924820001702756,
+      "etapas_s": {
+        "presentacion": 0.0157009000540711,
+        "fuentes_cache": 0.004649000067729503,
+        "preparacion": 0.00210829998832196,
+        "agregaciones": 0.014235799957532436
+      },
+      "llamadas": {
+        "presentacion": 3,
+        "fuentes_cache": 8,
+        "preparacion": 1,
+        "agregaciones": 2
+      },
+      "otros_s": 0.026896099967416376,
+      "bytes_tablas": 0,
+      "metricas": {
+        "Registros del reporte (total)": "45951",
+        "Registros seleccionados": "44543",
+        "Alumnos con eventos": "276",
+        "Repeticiones exactas adicionales": "171",
+        "Interacciones promedio por día del período": "549.91"
+      }
+    },
+    {
+      "escenario": "trazabilidad_cambio_materia",
+      "total_s": 14.500890599971171,
+      "primera_metrica_s": 14.476792600005865,
+      "etapas_s": {
+        "presentacion": 0.022452399949543178,
+        "fuentes_cache": 0.04674889997113496,
+        "excel": 14.15693110000575,
+        "preparacion": 0.11928499996429309,
+        "agregaciones": 0.11809810006525367
+      },
+      "llamadas": {
+        "presentacion": 3,
+        "fuentes_cache": 10,
+        "excel": 2,
+        "preparacion": 3,
+        "agregaciones": 3
+      },
+      "otros_s": 0.03737510001519695,
+      "bytes_tablas": 0,
+      "metricas": {
+        "Registros del reporte (total)": "68136",
+        "Registros seleccionados": "63578",
+        "Alumnos con eventos": "273",
+        "Repeticiones exactas adicionales": "285",
+        "Interacciones promedio por día del período": "784.91"
+      }
+    },
+    {
+      "escenario": "trazabilidad_abrir_detalle",
+      "total_s": 0.3886960999807343,
+      "primera_metrica_s": 0.04840520001016557,
+      "etapas_s": {
+        "presentacion": 0.14558429992757738,
+        "fuentes_cache": 0.05820899992249906,
+        "preparacion": 0.1557722000288777
+      },
+      "llamadas": {
+        "presentacion": 3,
+        "fuentes_cache": 14,
+        "preparacion": 5
+      },
+      "otros_s": 0.029130600101780146,
+      "bytes_tablas": 19074640,
+      "metricas": {
+        "Registros del reporte (total)": "68136",
+        "Registros seleccionados": "63578",
+        "Alumnos con eventos": "273",
+        "Repeticiones exactas adicionales": "285",
+        "Interacciones promedio por día del período": "784.91"
+      }
+    },
+    {
+      "escenario": "relacion_frio",
+      "total_s": 0.5020661000162363,
+      "primera_metrica_s": 0.46328240004368126,
+      "etapas_s": {
+        "presentacion": 0.055856899882201105,
+        "fuentes_cache": 0.03460410010302439,
+        "excel": 0.29811959993094206,
+        "preparacion": 0.03365310002118349,
+        "agregaciones": 0.054242500045802444
+      },
+      "llamadas": {
+        "presentacion": 6,
+        "fuentes_cache": 31,
+        "excel": 8,
+        "preparacion": 6,
+        "agregaciones": 4
+      },
+      "otros_s": 0.025589900033082813,
+      "bytes_tablas": 2052,
+      "metricas": {
+        "Observaciones emparejadas": "146",
+        "Correlación de Pearson": "0.077"
+      }
+    },
+    {
+      "escenario": "relacion_reentrada",
+      "total_s": 0.09429779998026788,
+      "primera_metrica_s": 0.048601999995298684,
+      "etapas_s": {
+        "presentacion": 0.052591800049412996,
+        "fuentes_cache": 0.008268599980510771,
+        "agregaciones": 0.011691099964082241,
+        "preparacion": 0.001419799984432757
+      },
+      "llamadas": {
+        "presentacion": 5,
+        "fuentes_cache": 19,
+        "agregaciones": 2,
+        "preparacion": 1
+      },
+      "otros_s": 0.020326500001829118,
+      "bytes_tablas": 2052,
+      "metricas": {
+        "Observaciones emparejadas": "146",
+        "Correlación de Pearson": "0.077"
+      }
+    },
+    {
+      "escenario": "relacion_cambio_materia",
+      "total_s": 0.5558931000414304,
+      "primera_metrica_s": 0.5175659999949858,
+      "etapas_s": {
+        "presentacion": 0.049706899968441576,
+        "fuentes_cache": 0.04980520001845434,
+        "excel": 0.3580923000117764,
+        "preparacion": 0.02736939996248111,
+        "agregaciones": 0.03777070000069216
+      },
+      "llamadas": {
+        "presentacion": 5,
+        "fuentes_cache": 39,
+        "excel": 12,
+        "preparacion": 6,
+        "agregaciones": 4
+      },
+      "otros_s": 0.03314860007958487,
+      "bytes_tablas": 2052,
+      "metricas": {
+        "Observaciones emparejadas": "194",
+        "Correlación de Pearson": "0.056"
+      }
+    },
+    {
+      "escenario": "relacion_abrir_trazabilidad",
+      "total_s": 14.237481499963906,
+      "primera_metrica_s": 14.191116500005592,
+      "etapas_s": {
+        "presentacion": 0.055158300092443824,
+        "fuentes_cache": 0.06003019993659109,
+        "agregaciones": 0.1528154999250546,
+        "preparacion": 0.11815699998987839,
+        "excel": 13.825808800000232
+      },
+      "llamadas": {
+        "presentacion": 5,
+        "fuentes_cache": 32,
+        "agregaciones": 4,
+        "preparacion": 4,
+        "excel": 2
+      },
+      "otros_s": 0.02551170001970604,
+      "bytes_tablas": 2052,
+      "metricas": {
+        "Observaciones emparejadas": "194",
+        "Correlación de Pearson": "0.056"
+      }
+    },
+    {
+      "escenario": "individual_frio",
+      "total_s": 0.44739310001023114,
+      "primera_metrica_s": null,
+      "etapas_s": {
+        "presentacion": 0.03339279995998368,
+        "fuentes_cache": 0.025962800136767328,
+        "excel": 0.2958269999944605,
+        "preparacion": 0.0251794999348931,
+        "agregaciones": 0.028243400040082633
+      },
+      "llamadas": {
+        "presentacion": 3,
+        "fuentes_cache": 28,
+        "excel": 8,
+        "preparacion": 5,
+        "agregaciones": 2
+      },
+      "otros_s": 0.038787599944043905,
+      "bytes_tablas": 0,
+      "metricas": {}
+    },
+    {
+      "escenario": "individual_reentrada",
+      "total_s": 0.052018199989106506,
+      "primera_metrica_s": null,
+      "etapas_s": {
+        "presentacion": 0.019694100017659366,
+        "fuentes_cache": 0.007598800060804933
+      },
+      "llamadas": {
+        "presentacion": 2,
+        "fuentes_cache": 16
+      },
+      "otros_s": 0.024725299910642207,
+      "bytes_tablas": 0,
+      "metricas": {}
+    },
+    {
+      "escenario": "individual_cambio_materia",
+      "total_s": 0.4475957000395283,
+      "primera_metrica_s": null,
+      "etapas_s": {
+        "presentacion": 0.02017050003632903,
+        "fuentes_cache": 0.04037920001428574,
+        "excel": 0.29587619996163994,
+        "preparacion": 0.02483299997402355,
+        "agregaciones": 0.03764210001099855
+      },
+      "llamadas": {
+        "presentacion": 2,
+        "fuentes_cache": 36,
+        "excel": 12,
+        "preparacion": 5,
+        "agregaciones": 2
+      },
+      "otros_s": 0.028694700042251498,
+      "bytes_tablas": 0,
+      "metricas": {}
+    },
+    {
+      "escenario": "individual_seleccionar",
+      "total_s": 0.06485050002811477,
+      "primera_metrica_s": 0.06170690001454204,
+      "etapas_s": {
+        "presentacion": 0.03137120004976168,
+        "fuentes_cache": 0.006623300025239587
+      },
+      "llamadas": {
+        "presentacion": 2,
+        "fuentes_cache": 20
+      },
+      "otros_s": 0.026855999953113496,
+      "bytes_tablas": 0,
+      "metricas": {
+        "Interacciones": "1071",
+        "Tiempo estimado": "1079 min"
+      }
+    },
+    {
+      "escenario": "individual_abrir_notas",
+      "total_s": 0.07770819996949285,
+      "primera_metrica_s": 0.06290229997830465,
+      "etapas_s": {
+        "presentacion": 0.03705360001185909,
+        "fuentes_cache": 0.009339400043245405
+      },
+      "llamadas": {
+        "presentacion": 4,
+        "fuentes_cache": 20
+      },
+      "otros_s": 0.03131519991438836,
+      "bytes_tablas": 2852,
+      "metricas": {
+        "Interacciones": "1071",
+        "Tiempo estimado": "1079 min",
+        "Resultado observado": "94,17 / 100",
+        "Instrumentos con nota": "6 de 9"
+      }
+    },
+    {
+      "escenario": "individual_abrir_historial",
+      "total_s": 14.538697699957993,
+      "primera_metrica_s": 0.05485590000171214,
+      "etapas_s": {
+        "presentacion": 0.05539240007055923,
+        "fuentes_cache": 0.04623939987504855,
+        "excel": 14.373600000049919,
+        "preparacion": 0.03663289995165542
+      },
+      "llamadas": {
+        "presentacion": 2,
+        "fuentes_cache": 26,
+        "excel": 1,
+        "preparacion": 3
+      },
+      "otros_s": 0.026833000010810792,
+      "bytes_tablas": 127838,
+      "metricas": {
+        "Interacciones": "1071",
+        "Tiempo estimado": "1079 min",
+        "Registros de trazabilidad": "886",
+        "Accesos a secciones": "315"
+      }
+    },
+    {
+      "escenario": "individual_cambiar_estudiante",
+      "total_s": 0.11307580000720918,
+      "primera_metrica_s": 0.05593050003517419,
+      "etapas_s": {
+        "presentacion": 0.037732900062110275,
+        "fuentes_cache": 0.024536099983379245,
+        "preparacion": 0.02628819999517873
+      },
+      "llamadas": {
+        "presentacion": 2,
+        "fuentes_cache": 26,
+        "preparacion": 3
+      },
+      "otros_s": 0.024518599966540933,
+      "bytes_tablas": 146366,
+      "metricas": {
+        "Interacciones": "1067",
+        "Tiempo estimado": "1157 min",
+        "Registros de trazabilidad": "923",
+        "Accesos a secciones": "288"
+      }
+    },
+    {
+      "escenario": "individual_historial_repetido",
+      "total_s": 0.07703069999115542,
+      "primera_metrica_s": 0.06218619999708608,
+      "etapas_s": {
+        "presentacion": 0.03284740005619824,
+        "fuentes_cache": 0.017901799932587892
+      },
+      "llamadas": {
+        "presentacion": 2,
+        "fuentes_cache": 24
+      },
+      "otros_s": 0.026281500002369285,
+      "bytes_tablas": 146366,
+      "metricas": {
+        "Interacciones": "1067",
+        "Tiempo estimado": "1157 min",
+        "Registros de trazabilidad": "923",
+        "Accesos a secciones": "288"
+      }
+    },
+    {
+      "escenario": "rendimiento_frio",
+      "total_s": 0.28610779996961355,
+      "primera_metrica_s": null,
+      "etapas_s": {
+        "presentacion": 0.08113499998580664,
+        "fuentes_cache": 0.03428539988817647,
+        "excel": 0.09386500006075948,
+        "preparacion": 0.008315599989145994,
+        "agregaciones": 0.03444459999445826
+      },
+      "llamadas": {
+        "presentacion": 7,
+        "fuentes_cache": 18,
+        "excel": 6,
+        "preparacion": 1,
+        "agregaciones": 4
+      },
+      "otros_s": 0.0340622000512667,
+      "bytes_tablas": 4684,
+      "metricas": {
+        "Alumnos con resultado observado": "146"
+      }
+    },
+    {
+      "escenario": "rendimiento_reentrada",
+      "total_s": 0.08552409999538213,
+      "primera_metrica_s": null,
+      "etapas_s": {
+        "presentacion": 0.046119799953885376,
+        "fuentes_cache": 0.005533200048375875,
+        "agregaciones": 0.008739000011701137
+      },
+      "llamadas": {
+        "presentacion": 6,
+        "fuentes_cache": 11,
+        "agregaciones": 3
+      },
+      "otros_s": 0.025132099981419742,
+      "bytes_tablas": 4684,
+      "metricas": {
+        "Alumnos con resultado observado": "146"
+      }
+    },
+    {
+      "escenario": "rendimiento_cambio_materia",
+      "total_s": 0.4274596000323072,
+      "primera_metrica_s": null,
+      "etapas_s": {
+        "presentacion": 0.0651814000448212,
+        "fuentes_cache": 0.04037110006902367,
+        "excel": 0.254670399997849,
+        "preparacion": 0.00963490002322942,
+        "agregaciones": 0.02608079998753965
+      },
+      "llamadas": {
+        "presentacion": 6,
+        "fuentes_cache": 26,
+        "excel": 10,
+        "preparacion": 1,
+        "agregaciones": 4
+      },
+      "otros_s": 0.03152099990984425,
+      "bytes_tablas": 4884,
+      "metricas": {
+        "Alumnos con resultado observado": "194"
+      }
+    },
+    {
+      "escenario": "matricula_frio",
+      "total_s": 0.3059503000113182,
+      "primera_metrica_s": 0.2995814000023529,
+      "etapas_s": {
+        "presentacion": 0.03224270005011931,
+        "fuentes_cache": 0.017780300113372505,
+        "excel": 0.1680243998998776,
+        "preparacion": 0.03564969991566613,
+        "agregaciones": 0.019972400041297078
+      },
+      "llamadas": {
+        "presentacion": 3,
+        "fuentes_cache": 14,
+        "excel": 3,
+        "preparacion": 6,
+        "agregaciones": 1
+      },
+      "otros_s": 0.03228079999098554,
+      "bytes_tablas": 49996,
+      "metricas": {
+        "Estudiantes seleccionados": "165",
+        "Con matrícula vigente": "165",
+        "Con actividad registrada": "163",
+        "Sin actividad registrada": "2"
+      }
+    },
+    {
+      "escenario": "matricula_reentrada",
+      "total_s": 0.0514919999986887,
+      "primera_metrica_s": 0.04181959998095408,
+      "etapas_s": {
+        "presentacion": 0.017633700103033334,
+        "fuentes_cache": 0.004821299982722849,
+        "preparacion": 0.0040738999377936125
+      },
+      "llamadas": {
+        "presentacion": 2,
+        "fuentes_cache": 9,
+        "preparacion": 2
+      },
+      "otros_s": 0.024963099975138903,
+      "bytes_tablas": 49996,
+      "metricas": {
+        "Estudiantes seleccionados": "165",
+        "Con matrícula vigente": "165",
+        "Con actividad registrada": "163",
+        "Sin actividad registrada": "2"
+      }
+    },
+    {
+      "escenario": "matricula_cambio_materia",
+      "total_s": 0.27780739997979254,
+      "primera_metrica_s": 0.27096950000850484,
+      "etapas_s": {
+        "presentacion": 0.02034560003085062,
+        "fuentes_cache": 0.00849270005710423,
+        "excel": 0.17381339997518808,
+        "preparacion": 0.02661819994682446,
+        "agregaciones": 0.028404099983163178
+      },
+      "llamadas": {
+        "presentacion": 2,
+        "fuentes_cache": 14,
+        "excel": 3,
+        "preparacion": 6,
+        "agregaciones": 1
+      },
+      "otros_s": 0.02013339998666197,
+      "bytes_tablas": 49444,
+      "metricas": {
+        "Estudiantes seleccionados": "164",
+        "Con matrícula vigente": "164",
+        "Con actividad registrada": "161",
+        "Sin actividad registrada": "3"
+      }
+    }
+  ]
+}
