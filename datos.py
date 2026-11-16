@@ -3,6 +3,9 @@ import pandas as pd
 import streamlit as st
 from html import unescape
 
+from procesamiento import (resumir_trazabilidad, resumir_accesos_diarios,
+                          preparar_trazabilidad, filtrar_trazabilidad)
+
 CARPETA_PROYECTO = Path(__file__).resolve().parent
 
 CARPETA_DATOS = (
@@ -254,3 +257,29 @@ def leer_calificaciones(materia):
         tablas.append(tabla)
 
     return pd.concat(tablas, ignore_index=True)
+
+
+def firma_reporte(materia, tipo="trazabilidad"):
+    archivo = buscar_reporte(materia, tipo)
+    estado = archivo.stat()
+    return str(archivo.resolve()), estado.st_mtime_ns, estado.st_size
+
+
+@st.cache_data(show_spinner=False, max_entries=6)
+def _resumen_trazabilidad_cache(materia, firma):
+    return resumir_trazabilidad(leer_trazabilidad(materia))
+
+
+def leer_resumen_trazabilidad(materia):
+    return _resumen_trazabilidad_cache(materia, firma_reporte(materia))
+
+
+@st.cache_data(show_spinner=False, max_entries=6)
+def _tendencia_diaria_cache(materia, firma):
+    periodo = leer_periodo_reporte(materia, "trazabilidad")
+    resumen = _resumen_trazabilidad_cache(materia, firma)
+    return resumir_accesos_diarios(resumen["eventos"], *periodo)
+
+
+def leer_tendencia_diaria(materia):
+    return _tendencia_diaria_cache(materia, firma_reporte(materia))

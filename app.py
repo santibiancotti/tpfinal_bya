@@ -3,7 +3,8 @@ import streamlit as st
 import pandas as pd
 
 from datos import (detectar_materias, leer_matriculados, leer_participacion,
-                   leer_trazabilidad, leer_calificaciones, leer_periodo_reporte, buscar_reporte)
+                   leer_trazabilidad, leer_calificaciones, leer_periodo_reporte, buscar_reporte,
+                   leer_tendencia_diaria)
 
 
 from procesamiento import (consolidar_matricula, preparar_participacion,
@@ -57,7 +58,7 @@ def pagina_general():
     if not materias:
         st.info("Seleccioná al menos una asignatura.")
         return
-    resumenes, poblaciones, resultados, tendencias = [], [], [], []
+    resumenes, poblaciones, resultados = [], [], []
     try:
         with st.spinner("Consolidando las asignaturas seleccionadas..."):
             for materia in materias:
@@ -70,17 +71,18 @@ def pagina_general():
                 resumenes.append(resumir_materia(materia, reporte, alumnos, notas, periodo))
                 poblaciones.append(alumnos.assign(Materia=materia))
                 resultados.append(notas.assign(Materia=materia))
-                periodo_eventos = leer_periodo_reporte(materia, "trazabilidad")
-                resumenes[-1]["Trazabilidad desde"] = periodo_eventos[0]
-                resumenes[-1]["Trazabilidad hasta"] = periodo_eventos[1]
-                tendencias.append(resumir_accesos_diarios(
-                    obtener_trazabilidad_preparada(materia), *periodo_eventos
-                ).assign(Materia=materia))
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
         return
+    def cargar_tendencias():
+        tendencias = []
+        for indice, materia in enumerate(materias, start=1):
+            with st.spinner(f"Cargando tendencia de {materia} ({indice}/{len(materias)})..."):
+                tendencias.append(leer_tendencia_diaria(materia).assign(Materia=materia))
+        return pd.concat(tendencias, ignore_index=True)
+
     mostrar_general(pd.DataFrame(resumenes), pd.concat(poblaciones),
-                    pd.concat(resultados), pd.concat(tendencias))
+                    pd.concat(resultados), cargar_tendencias)
 
 
 def pagina_relacion():

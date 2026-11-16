@@ -897,7 +897,7 @@ def mostrar_criterio_academico(materia):
         )
 
 
-def mostrar_general(resumen, alumnos, resultados, tendencias):
+def mostrar_general(resumen, alumnos, resultados, cargar_tendencias):
     col1, col2, col3 = st.columns(3)
     col1.metric("Asignaturas", len(resumen))
     col2.metric("Estudiantes únicos en las aulas", alumnos["Usuario"].nunique())
@@ -943,12 +943,22 @@ def mostrar_general(resumen, alumnos, resultados, tendencias):
         "No se calcula un promedio global de resultados con escalas diferentes. "
         "El promedio por materia usa solo estudiantes con resultado observado."
     )
-    st.subheader("Tendencia diaria de accesos a secciones")
-    st.line_chart(tendencias, x="Día", y="Accesos a secciones", color="Materia")
-    st.caption(
-        "Acción Acceder de trazabilidad; incluye repeticiones y días sin accesos dentro "
-        "del período de cada reporte. Los accesos son eventos; las fuentes no identifican sesiones."
+    tendencia = st.expander(
+        "Tendencia diaria de accesos a secciones", key="general_tendencia", on_change="rerun"
     )
+    if tendencia.open:
+        with tendencia:
+            st.caption("La primera carga puede tardar mientras se leen los reportes de trazabilidad.")
+            try:
+                tendencias = cargar_tendencias()
+            except (FileNotFoundError, ValueError) as error:
+                st.error(str(error))
+                return
+            st.line_chart(tendencias, x="Día", y="Accesos a secciones", color="Materia")
+            st.caption(
+                "Acción Acceder de trazabilidad; incluye repeticiones y días sin accesos dentro "
+                "del período de cada reporte. Los accesos son eventos; las fuentes no identifican sesiones."
+            )
 
 
 def mostrar_relacion(datos, materia):

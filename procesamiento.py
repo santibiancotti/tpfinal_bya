@@ -43,7 +43,7 @@ def consolidar_matricula(matriculados):
 
     return actuales.reset_index(drop=True)
 
-def obtener_alumnos(reporte):
+def obtener_alumnos(reporte, usuario=None):
     perfil = (
         reporte["Perfil"]
         .astype("string")
@@ -51,9 +51,11 @@ def obtener_alumnos(reporte):
         .str.casefold()
     )
 
-    alumnos = reporte.loc[
-        perfil.eq("alumnos")
-    ].copy()
+    seleccion = perfil.eq("alumnos")
+    if usuario is not None:
+        identificadores = reporte["Usuario"].astype("string").str.strip().str.upper()
+        seleccion &= identificadores.eq(usuario)
+    alumnos = reporte.loc[seleccion].copy()
 
     alumnos["Usuario"] = (
         alumnos["Usuario"]
@@ -297,16 +299,17 @@ def filtrar_situaciones(alumnos, filtros):
     return datos.copy()
 
 def preparar_trazabilidad(trazabilidad, usuario=None):
-    alumnos = obtener_alumnos(trazabilidad)
-
-    if usuario is not None:
-        alumnos = alumnos.loc[
-            alumnos["Usuario"].eq(usuario)
-        ].copy()
+    alumnos = obtener_alumnos(trazabilidad, usuario)
         
     alumnos["Repetición exacta adicional"] = (
         alumnos.duplicated(keep="first")
     )
+    alumnos = completar_eventos(alumnos)
+    return alumnos.sort_values("Fecha", kind="stable").reset_index(drop=True)
+
+
+def completar_eventos(alumnos):
+    """Normaliza fechas, acciones y dimensiones temporales en una copia de trabajo."""
 
     alumnos["Fecha"] = pd.to_datetime(
         alumnos["Fecha"],
@@ -343,22 +346,36 @@ def preparar_trazabilidad(trazabilidad, usuario=None):
         .astype("Int64")
     )
 
-    return alumnos.sort_values(
-        "Fecha",
-        kind="stable",
-    ).reset_index(drop=True)
+    return alumnos
+
+
+def resumir_trazabilidad(trazabilidad):
+    """Conserva los conteos necesarios para filtros diarios, sin transportar el detalle."""
+    alumnos = obtener_alumnos(trazabilidad)
+    # Las repeticiones se identifican con todas las columnas originales, antes de reducir.
+    alumnos["Repetición exacta adicional"] = alumnos.duplicated(keep="first")
+    alumnos = completar_eventos(alumnos[[
+        "Fecha", "Usuario", "Apellido", "Nombre", "Acción", "Repetición exacta adicional"
+    ]].copy())
+    usuarios = (alumnos.sort_values("Fecha", kind="stable")[["Usuario", "Apellido", "Nombre"]]
+                .drop_duplicates("Usuario").sort_values("Usuario").reset_index(drop=True))
+    dimensiones = ["Día", "Semana", "Hora", "Día de semana", "Usuario", "Acción"]
+    eventos = alumnos.groupby(dimensiones, as_index=False, dropna=False).agg(
+        **{"Registros": ("Usuario", "size"),
+           "Repetición exacta adicional": ("Repetición exacta adicional", "sum")}
+    )
+    eventos["Fecha"] = eventos["Día"]
+    return {"total_reporte": len(trazabilidad), "usuarios": usuarios, "eventos": eventos}
 
 def resumir_actividad(eventos, campo):
+    cantidad = ("Registros", "sum") if "Registros" in eventos else ("Usuario", "size")
     resumen = eventos.groupby(
         campo,
         as_index=False,
         dropna=False,
     ).agg(
         **{
-            "Registros": (
-                "Usuario",
-                "size",
-            ),
+            "Registros": cantidad,
             "Alumnos con eventos": (
                 "Usuario",
                 "nunique",
