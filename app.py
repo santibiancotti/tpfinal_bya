@@ -3,14 +3,16 @@ import streamlit as st
 import pandas as pd
 
 from datos import (detectar_materias, leer_matriculados, leer_participacion,
-                   leer_trazabilidad, leer_calificaciones, leer_periodo_reporte, buscar_reporte,
-                   leer_tendencia_diaria)
+                   leer_trazabilidad, leer_calificaciones, leer_periodo_reporte,
+                   leer_tendencia_diaria, leer_resumen_trazabilidad, leer_actividad_por_alumno,
+                   leer_historial, leer_detalle_trazabilidad, firma_reporte,
+                   firma_calificaciones, firma_matricula)
 
 
 from procesamiento import (consolidar_matricula, preparar_participacion,
-    cruzar_matricula_participacion, clasificar_alertas, preparar_trazabilidad,
+    cruzar_matricula_participacion, clasificar_alertas,
     preparar_calificaciones, resumir_resultados_alumnos, resumir_materia,
-    resumir_accesos_diarios, cruzar_resultados_participacion)
+    cruzar_resultados_participacion)
 
 
 from vistas import (mostrar_inicio, mostrar_matricula, mostrar_participacion,
@@ -29,20 +31,28 @@ def pagina_inicio():
 
 
 @st.cache_data(show_spinner=False, max_entries=6)
-def cargar_trazabilidad_preparada(materia, modificacion_ns, tamano):
-    return preparar_trazabilidad(leer_trazabilidad(materia))
+def cargar_participacion(materia, firma):
+    reporte = leer_participacion(materia)
+    return reporte, preparar_participacion(reporte)
 
 
-def obtener_trazabilidad_preparada(materia):
-    estado = buscar_reporte(materia, "trazabilidad").stat()
-    return cargar_trazabilidad_preparada(materia, estado.st_mtime_ns, estado.st_size)
+@st.cache_data(show_spinner=False, max_entries=6)
+def cargar_rendimiento(materia, firmas):
+    notas = preparar_calificaciones(leer_calificaciones(materia))
+    return notas, resumir_resultados_alumnos(notas, materia)
+
+
+@st.cache_data(show_spinner=False, max_entries=6)
+def cargar_matricula(materia, firma_inscripciones, firma_participacion):
+    matriculados = leer_matriculados(materia)
+    actual = consolidar_matricula(matriculados)
+    _, alumnos = cargar_participacion(materia, firma_participacion)
+    base = clasificar_alertas(cruzar_matricula_participacion(actual, alumnos))
+    return matriculados, actual, base
 
 
 def cargar_base(materia):
-    return clasificar_alertas(cruzar_matricula_participacion(
-        consolidar_matricula(leer_matriculados(materia)),
-        preparar_participacion(leer_participacion(materia)),
-    ))
+    return cargar_matricula(materia, firma_matricula(materia), firma_reporte(materia, "participacion"))[2]
 
 
 def pagina_general():
@@ -62,11 +72,8 @@ def pagina_general():
     try:
         with st.spinner("Consolidando las asignaturas seleccionadas..."):
             for materia in materias:
-                reporte = leer_participacion(materia)
-                alumnos = preparar_participacion(reporte)
-                notas = resumir_resultados_alumnos(
-                    preparar_calificaciones(leer_calificaciones(materia)), materia
-                )
+                reporte, alumnos = cargar_participacion(materia, firma_reporte(materia, "participacion"))
+                _, notas = cargar_rendimiento(materia, firma_calificaciones(materia))
                 periodo = leer_periodo_reporte(materia)
                 resumenes.append(resumir_materia(materia, reporte, alumnos, notas, periodo))
                 poblaciones.append(alumnos.assign(Materia=materia))
@@ -88,43 +95,27 @@ def pagina_general():
 def pagina_relacion():
     materia = st.session_state["materia_actual"]
     try:
-        resultados = resumir_resultados_alumnos(
-            preparar_calificaciones(leer_calificaciones(materia)), materia
-        )
+        _, resultados = cargar_rendimiento(materia, firma_calificaciones(materia))
         periodo = leer_periodo_reporte(materia)
-        periodo_eventos = leer_periodo_reporte(materia, "trazabilidad")
-        eventos = obtener_trazabilidad_preparada(materia) if periodo == periodo_eventos else None
-        if eventos is None:
-            st.warning("Los períodos de participación y trazabilidad difieren. No se cruzan sus recuentos.")
-        datos = cruzar_resultados_participacion(cargar_base(materia), resultados, materia, eventos)
+        datos = cruzar_resultados_participacion(cargar_base(materia), resultados, materia)
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
         return
-    mostrar_relacion(datos, materia)
+    def cargar_indicadores():
+        if periodo != leer_periodo_reporte(materia, "trazabilidad"):
+            return None
+        return leer_actividad_por_alumno(materia)
+
+    mostrar_relacion(datos, materia, cargar_indicadores)
 
 
 def pagina_matricula():
     materia = st.session_state["materia_actual"]
 
     try:
-        matriculados = leer_matriculados(materia)
-
-        matricula_actual = consolidar_matricula(
-            matriculados
+        matriculados, matricula_actual, base_alumnos = cargar_matricula(
+            materia, firma_matricula(materia), firma_reporte(materia, "participacion")
         )
-
-        participacion = leer_participacion(materia)
-
-        participacion_alumnos = preparar_participacion(
-            participacion
-        )
-
-        base_alumnos = cruzar_matricula_participacion(
-            matricula_actual,
-            participacion_alumnos,
-        )
-
-        base_alumnos = clasificar_alertas(base_alumnos)
         
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
@@ -141,12 +132,9 @@ def pagina_participacion():
     materia = st.session_state["materia_actual"]
 
     try:
-        participacion = leer_participacion(materia)
-        participacion_alumnos = preparar_participacion(
-            participacion
+        participacion, participacion_alumnos = cargar_participacion(
+            materia, firma_reporte(materia, "participacion")
         )
-
-        trazabilidad_alumnos = obtener_trazabilidad_preparada(materia)
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
         st.stop()
@@ -154,7 +142,7 @@ def pagina_participacion():
     mostrar_participacion(
         participacion,
         participacion_alumnos,
-        trazabilidad_alumnos,
+        lambda: leer_resumen_trazabilidad(materia),
     )
 
 def pagina_trazabilidad():
@@ -164,50 +152,47 @@ def pagina_trazabilidad():
         with st.spinner(
             "Leyendo y preparando trazabilidad..."
         ):
-            trazabilidad = leer_trazabilidad(materia)
-
-            trazabilidad_alumnos = obtener_trazabilidad_preparada(materia)
+            resumen = leer_resumen_trazabilidad(materia)
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
         st.stop()
 
     mostrar_trazabilidad(
-        trazabilidad,
-        trazabilidad_alumnos,
+        resumen,
+        lambda desde, hasta, usuario: leer_detalle_trazabilidad(materia, desde, hasta, usuario),
+        lambda: leer_trazabilidad(materia),
     )
 
 def pagina_rendimiento():
     materia = st.session_state["materia_actual"]
 
     try:
-        calificaciones = preparar_calificaciones(leer_calificaciones(materia))
+        calificaciones, resultados = cargar_rendimiento(materia, firma_calificaciones(materia))
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
         st.stop()
 
-    mostrar_rendimiento(calificaciones, materia)
+    mostrar_rendimiento(calificaciones, materia, resultados)
 
 def pagina_individual():
     materia = st.session_state["materia_actual"]
 
     try:
         base_alumnos = cargar_base(materia)
-        calificaciones = preparar_calificaciones(
-            leer_calificaciones(materia)
-        )
+        calificaciones, resultados = cargar_rendimiento(materia, firma_calificaciones(materia))
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
         st.stop()
 
     def cargar_historial(usuario):
-        trazabilidad = leer_trazabilidad(materia)
-        return preparar_trazabilidad(trazabilidad, usuario=usuario)
+        return leer_historial(materia, usuario)
 
     mostrar_individual(
         base_alumnos,
         calificaciones,
         materia,
         cargar_historial,
+        resultados,
     )
 
 paginas = {

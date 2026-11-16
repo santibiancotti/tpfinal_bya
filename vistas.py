@@ -7,7 +7,7 @@ from hashlib import sha256
 from procesamiento import (FILTROS_POBLACION, seleccionar_poblacion, filtrar_situaciones, resumir_actividad, 
                            filtrar_trazabilidad, DIAS_SEMANA, resumir_horarios, resumir_accesos_diarios, resumir_participacion, resumir_instrumentos,
                            resumir_resultados_alumnos, resumir_distribucion_resultados,
-                           resumir_condiciones, calcular_correlacion)
+                           resumir_condiciones, calcular_correlacion, agregar_actividad_trazabilidad)
 
 def mostrar_inicio(paginas):
     st.title("Seguimiento académico")
@@ -275,32 +275,38 @@ def mostrar_resumen_participacion(participacion, participacion_alumnos):
         hide_index=True,
     )
 
-    with st.expander("Ver reporte con todos los perfiles"):
-        reporte_visual = participacion.assign(
-            Avance = participacion["Avance"].astype("string")
-        )
-
-        st.dataframe(
-            reporte_visual,
-            hide_index=True,
-        )
+    original = st.expander("Ver reporte con todos los perfiles", key="participacion_original", on_change="rerun")
+    if original.open:
+        with original:
+            reporte_visual = participacion.assign(Avance=participacion["Avance"].astype("string"))
+            st.dataframe(reporte_visual, hide_index=True)
 
 def mostrar_participacion(
     participacion,
     participacion_alumnos,
-    trazabilidad_alumnos,
+    cargar_evolucion,
 ):
+    materia = st.session_state["materia_actual"]
     pestana_resumen, pestana_evolucion = st.tabs(
-        ["Resumen del reporte completo", "Evolución de accesos"]
+        ["Resumen del reporte completo", "Evolución de accesos"],
+        key=f"participacion_pestanas_{materia}", on_change="rerun",
     )
 
-    with pestana_resumen:
-        mostrar_resumen_participacion(
-            participacion,
-            participacion_alumnos,
-        )
+    if pestana_resumen.open:
+        with pestana_resumen:
+            mostrar_resumen_participacion(participacion, participacion_alumnos)
+
+    if not pestana_evolucion.open:
+        return
 
     with pestana_evolucion:
+        try:
+            with st.spinner(f"Cargando evolución de {materia}; la primera lectura puede tardar..."):
+                resumen_eventos = cargar_evolucion()
+        except (FileNotFoundError, ValueError) as error:
+            st.error(str(error))
+            return
+        trazabilidad_alumnos = resumen_eventos["eventos"]
         if trazabilidad_alumnos.empty:
             st.info("El reporte no contiene registros de alumnos.")
             return
@@ -308,6 +314,7 @@ def mostrar_participacion(
         filtros = seleccionar_filtros_actividad(
             trazabilidad_alumnos,
             "participacion",
+            resumen_eventos["usuarios"],
         )
 
         if filtros is None:
@@ -347,7 +354,7 @@ def mostrar_participacion(
 
         st.dataframe(datos_grafico, hide_index=True)
 
-def seleccionar_filtros_actividad(eventos, prefijo):
+def seleccionar_filtros_actividad(eventos, prefijo, usuarios=None):
     prefijo = f"{prefijo}_{st.session_state.get('materia_actual', '')}"
     fecha_min = eventos["Fecha"].min().date()
     fecha_max = eventos["Fecha"].max().date()
@@ -361,11 +368,11 @@ def seleccionar_filtros_actividad(eventos, prefijo):
         key=f"{prefijo}_periodo_{fecha_min}_{fecha_max}",
     )
 
-    usuarios = (
-        eventos[["Usuario", "Apellido", "Nombre"]]
-        .drop_duplicates(subset="Usuario")
-        .sort_values("Usuario")
-    )
+    if usuarios is None:
+        usuarios = (
+            eventos[["Usuario", "Apellido", "Nombre"]]
+            .drop_duplicates(subset="Usuario").sort_values("Usuario")
+        )
 
     etiquetas = {
         usuario: f"{usuario} - {apellido}, {nombre}"
@@ -389,7 +396,9 @@ def seleccionar_filtros_actividad(eventos, prefijo):
 
     return periodo, usuario
 
-def mostrar_trazabilidad(trazabilidad, trazabilidad_alumnos,):
+def mostrar_trazabilidad(resumen_eventos, cargar_detalle, cargar_original):
+    materia = st.session_state["materia_actual"]
+    trazabilidad_alumnos = resumen_eventos["eventos"]
     if trazabilidad_alumnos.empty:
         st.info(
             "El reporte no contiene registros de alumnos."
@@ -399,6 +408,7 @@ def mostrar_trazabilidad(trazabilidad, trazabilidad_alumnos,):
     filtros = seleccionar_filtros_actividad(
         trazabilidad_alumnos,
         "trazabilidad",
+        resumen_eventos["usuarios"],
     )
 
     if filtros is None:
@@ -433,12 +443,12 @@ def mostrar_trazabilidad(trazabilidad, trazabilidad_alumnos,):
 
     col1.metric(
         "Registros del reporte (total)",
-        len(trazabilidad),
+        resumen_eventos["total_reporte"],
     )
 
     col2.metric(
         "Registros seleccionados",
-        len(trazabilidad_alumnos),
+        int(trazabilidad_alumnos["Registros"].sum()),
     )
 
     col3.metric(
@@ -451,7 +461,8 @@ def mostrar_trazabilidad(trazabilidad, trazabilidad_alumnos,):
         cantidad_repeticiones,
     )
     dias_periodo = (pd.Timestamp(periodo[1]) - pd.Timestamp(periodo[0])).days + 1
-    st.metric("Interacciones promedio por día del período", f"{len(trazabilidad_alumnos) / dias_periodo:.2f}")
+    cantidad_registros = int(trazabilidad_alumnos["Registros"].sum())
+    st.metric("Interacciones promedio por día del período", f"{cantidad_registros / dias_periodo:.2f}")
 
     st.caption(
         "El total del reporte incluye todos los perfiles "
@@ -473,11 +484,11 @@ def mostrar_trazabilidad(trazabilidad, trazabilidad_alumnos,):
             titulo
             for titulo, campo in configuracion
         ]
-        + ["Detalle"]
+        + ["Detalle"], key=f"trazabilidad_pestanas_{materia}", on_change="rerun",
     )
 
     with pestanas[0]:
-        if not trazabilidad_alumnos.empty:
+        if pestanas[0].open and not trazabilidad_alumnos.empty:
             horarios = resumir_horarios(
                 trazabilidad_alumnos
             )
@@ -552,6 +563,8 @@ def mostrar_trazabilidad(trazabilidad, trazabilidad_alumnos,):
         configuracion,
     ):
         titulo, campo = configuracion_actual
+        if not pestana.open:
+            continue
 
         with pestana:
             resumen = resumir_actividad(
@@ -580,21 +593,27 @@ def mostrar_trazabilidad(trazabilidad, trazabilidad_alumnos,):
                 hide_index=True,
             )
 
-    with pestanas[-1]:
-        st.dataframe(
-            trazabilidad_alumnos,
-            hide_index=True,
-        )
+    if pestanas[-1].open:
+        with pestanas[-1]:
+            try:
+                with st.spinner("Cargando el detalle de la selección..."):
+                    detalle = cargar_detalle(periodo[0], periodo[1], usuario_seleccionado)
+            except (FileNotFoundError, ValueError) as error:
+                st.error(str(error))
+            else:
+                st.dataframe(detalle, hide_index=True)
 
-    with st.expander(
-        "Ver reporte original con todos los perfiles"
-    ):
-        st.dataframe(
-            trazabilidad,
-            hide_index=True,
-        )
+    original = st.expander("Ver reporte original con todos los perfiles",
+                           key=f"trazabilidad_original_{materia}", on_change="rerun")
+    if original.open:
+        with original:
+            try:
+                with st.spinner("Cargando el reporte original completo..."):
+                    st.dataframe(cargar_original(), hide_index=True)
+            except (FileNotFoundError, ValueError) as error:
+                st.error(str(error))
 
-def mostrar_rendimiento(calificaciones, materia):
+def mostrar_rendimiento(calificaciones, materia, resultados=None):
     pestana_comparacion, pestana_distribucion = st.tabs(
         ["Comparación por instrumento", "Distribución de resultados"]
     )
@@ -626,10 +645,8 @@ def mostrar_rendimiento(calificaciones, materia):
 
     with pestana_distribucion:
         try:
-            resultados = resumir_resultados_alumnos(
-                calificaciones,
-                materia,
-            )
+            if resultados is None:
+                resultados = resumir_resultados_alumnos(calificaciones, materia)
         except ValueError as error:
             st.info(str(error))
             return
@@ -710,7 +727,7 @@ def mostrar_semaforo(condicion, materia):
         """
     )
 
-def mostrar_individual(base_alumnos, calificaciones, materia, cargar_historial):
+def mostrar_individual(base_alumnos, calificaciones, materia, cargar_historial, resultados=None):
     alumnos_por_id = base_alumnos.set_index("Identificación")
 
     nombres_notas = (
@@ -825,7 +842,8 @@ def mostrar_individual(base_alumnos, calificaciones, materia, cargar_historial):
             return
 
         try:
-            resultados = resumir_resultados_alumnos(calificaciones, materia)
+            if resultados is None:
+                resultados = resumir_resultados_alumnos(calificaciones, materia)
         except ValueError as error:
             st.info(str(error))
         else:
@@ -961,7 +979,7 @@ def mostrar_general(resumen, alumnos, resultados, cargar_tendencias):
             )
 
 
-def mostrar_relacion(datos, materia):
+def mostrar_relacion(datos, materia, cargar_indicadores=None):
     poblacion = st.radio("Población a consultar", list(FILTROS_POBLACION),
                          index=1, horizontal=True, key=f"relacion_poblacion_{materia}")
     seleccion = seleccionar_poblacion(datos, poblacion)
@@ -973,6 +991,22 @@ def mostrar_relacion(datos, materia):
     if seleccion.empty:
         st.info("No hay estudiantes en esta población.")
         return
+    if cargar_indicadores is not None:
+        trazabilidad = st.expander("Incluir indicadores de trazabilidad",
+                                  key=f"relacion_trazabilidad_{materia}", on_change="rerun")
+        if trazabilidad.open:
+            with trazabilidad:
+                try:
+                    with st.spinner(f"Cargando indicadores de trazabilidad de {materia}..."):
+                        resumen = cargar_indicadores()
+                except (FileNotFoundError, ValueError) as error:
+                    st.error(str(error))
+                    return
+                if resumen is None:
+                    st.warning("Los períodos de participación y trazabilidad difieren. No se cruzan sus recuentos.")
+                else:
+                    seleccion = agregar_actividad_trazabilidad(seleccion, resumen)
+                    st.caption("Indicadores de trazabilidad incorporados a la selección del gráfico.")
     variables = ["Interacciones", "Tiempo de uso (minutos)"]
     if "Registros de trazabilidad" in seleccion:
         variables += ["Registros de trazabilidad", "Días con eventos"]

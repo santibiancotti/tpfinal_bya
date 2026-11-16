@@ -4,7 +4,7 @@ import streamlit as st
 from html import unescape
 
 from procesamiento import (resumir_trazabilidad, resumir_accesos_diarios,
-                          preparar_trazabilidad, filtrar_trazabilidad)
+                          preparar_trazabilidad, filtrar_trazabilidad, resumir_actividad_alumnos)
 
 CARPETA_PROYECTO = Path(__file__).resolve().parent
 
@@ -190,7 +190,7 @@ def leer_trazabilidad(materia):
         estado.st_size,
     )
 
-def leer_calificaciones(materia):
+def buscar_calificaciones(materia):
     carpeta = CARPETA_DATOS / materia
 
     archivos = sorted(
@@ -203,6 +203,11 @@ def leer_calificaciones(materia):
         raise FileNotFoundError(
             f"No se encontraron archivos de calificaciones para {materia}."
         )
+    return archivos
+
+
+def leer_calificaciones(materia):
+    archivos = buscar_calificaciones(materia)
 
     columnas = [
         "Usuario",
@@ -260,9 +265,20 @@ def leer_calificaciones(materia):
 
 
 def firma_reporte(materia, tipo="trazabilidad"):
-    archivo = buscar_reporte(materia, tipo)
+    return firma_archivo(buscar_reporte(materia, tipo))
+
+
+def firma_archivo(archivo):
     estado = archivo.stat()
     return str(archivo.resolve()), estado.st_mtime_ns, estado.st_size
+
+
+def firma_calificaciones(materia):
+    return tuple(firma_archivo(archivo) for archivo in buscar_calificaciones(materia))
+
+
+def firma_matricula(materia):
+    return firma_archivo(CARPETA_DATOS / "Matriculados" / f"{materia}.xlsx")
 
 
 @st.cache_data(show_spinner=False, max_entries=6)
@@ -283,3 +299,29 @@ def _tendencia_diaria_cache(materia, firma):
 
 def leer_tendencia_diaria(materia):
     return _tendencia_diaria_cache(materia, firma_reporte(materia))
+
+
+@st.cache_data(show_spinner=False, max_entries=6)
+def _actividad_alumnos_cache(materia, firma):
+    resumen = _resumen_trazabilidad_cache(materia, firma)
+    return resumir_actividad_alumnos(resumen["eventos"])
+
+
+def leer_actividad_por_alumno(materia):
+    return _actividad_alumnos_cache(materia, firma_reporte(materia))
+
+
+@st.cache_data(show_spinner=False, max_entries=8)
+def _detalle_trazabilidad_cache(materia, firma, usuario, desde=None, hasta=None):
+    eventos = preparar_trazabilidad(leer_trazabilidad(materia), usuario)
+    if desde is not None:
+        eventos = filtrar_trazabilidad(eventos, desde, hasta)
+    return eventos
+
+
+def leer_historial(materia, usuario):
+    return _detalle_trazabilidad_cache(materia, firma_reporte(materia), usuario)
+
+
+def leer_detalle_trazabilidad(materia, desde, hasta, usuario=None):
+    return _detalle_trazabilidad_cache(materia, firma_reporte(materia), usuario, desde, hasta)

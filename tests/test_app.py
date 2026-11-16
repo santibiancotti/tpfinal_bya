@@ -33,6 +33,9 @@ class VistasConFuentesReales(unittest.TestCase):
                     self.app.selectbox(key="selector_materia").select(materia).run()
                     self.comprobar()
                     if vista == "relacion":
+                        self.app.session_state[f"relacion_trazabilidad_{materia}"] = True
+                        self.app.run()
+                        self.comprobar()
                         for variable in ["Interacciones", "Tiempo de uso (minutos)",
                                          "Registros de trazabilidad", "Días con eventos"]:
                             self.app.selectbox(key=f"relacion_variable_{materia}").select(variable).run()
@@ -60,6 +63,10 @@ class VistasConFuentesReales(unittest.TestCase):
             self.abrir(vista)
             for materia in self.materias:
                 self.app.selectbox(key="selector_materia").select(materia).run()
+                if vista == "participacion":
+                    self.app.session_state[f"participacion_pestanas_{materia}"] = "Evolución de accesos"
+                    self.app.run()
+                    self.comprobar()
                 fecha = self.app.date_input[0].value[0]
                 self.app.date_input[0].set_value((fecha, fecha + timedelta(days=1))).run()
                 self.comprobar()

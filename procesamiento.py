@@ -733,14 +733,23 @@ def cruzar_resultados_participacion(base_alumnos, resultados, materia, eventos=N
         "Sin registro en participación"
     )
     if eventos is not None:
-        resumen = eventos.groupby("Usuario").agg(
-            **{"Registros de trazabilidad": ("Usuario", "size"),
-               "Días con eventos": ("Día", "nunique")}
-        ).reset_index().rename(columns={"Usuario": "Identificación"})
-        datos = datos.merge(resumen, on="Identificación", how="left", validate="one_to_one")
-        for columna in ["Registros de trazabilidad", "Días con eventos"]:
-            datos[columna] = datos[columna].fillna(0).astype("Int64")
+        datos = agregar_actividad_trazabilidad(datos, resumir_actividad_alumnos(eventos))
     datos["Materia"] = materia
+    return datos
+
+
+def resumir_actividad_alumnos(eventos):
+    cantidad = ("Registros", "sum") if "Registros" in eventos else ("Usuario", "size")
+    return eventos.groupby("Usuario", as_index=False).agg(
+        **{"Registros de trazabilidad": cantidad, "Días con eventos": ("Día", "nunique")}
+    )
+
+
+def agregar_actividad_trazabilidad(datos, resumen):
+    resumen = resumen.rename(columns={"Usuario": "Identificación"})
+    datos = datos.merge(resumen, on="Identificación", how="left", validate="one_to_one")
+    for columna in ["Registros de trazabilidad", "Días con eventos"]:
+        datos[columna] = datos[columna].fillna(0).astype("Int64")
     return datos
 
 
