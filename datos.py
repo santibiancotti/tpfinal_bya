@@ -14,6 +14,7 @@ CARPETA_DATOS = (
 
 @st.cache_data(show_spinner=False, max_entries=48)
 def _leer_excel_cache(ruta, modificacion_ns, tamano, opciones):
+    opciones = {"engine": "openpyxl", **opciones}
     return pd.read_excel(ruta, **opciones)
 
 
@@ -173,6 +174,7 @@ def _leer_trazabilidad_cache(
         header=5,
         usecols=columnas,
         dtype={"Usuario": "string"},
+        engine="calamine",
     )
 
 

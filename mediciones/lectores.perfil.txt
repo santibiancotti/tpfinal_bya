@@ -1,0 +1,101 @@
+LECTURA openpyxl: Probabilidad y Estadística
+         45111395 function calls (45111054 primitive calls) in 30.116 seconds
+
+   Ordered by: cumulative time
+   List reduced from 627 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000   30.116   30.116 perfilar_lectura.py:26(leer)
+        1    0.000    0.000   30.116   30.116 _base.py:162(read_excel)
+        1    0.000    0.000   30.101   30.101 _base.py:734(parse)
+        1    0.195    0.195   29.899   29.899 _openpyxl.py:731(get_sheet_data)
+    68143    0.170    0.000   27.878    0.000 _read_only.py:60(_cells_by_row)
+    68141    1.247    0.000   26.284    0.000 _reader.py:125(parse)
+    68140    0.249    0.000   20.210    0.000 _reader.py:282(parse_row)
+    68140    0.347    0.000   19.863    0.000 _reader.py:303(<listcomp>)
+   681377    2.576    0.000   19.516    0.000 _reader.py:189(parse_cell)
+681443/681378    2.977    0.000   13.154    0.000 serialisable.py:46(from_tree)
+   681364    1.262    0.000    7.934    0.000 text.py:161(__init__)
+2112274/2112273    0.537    0.000    4.696    0.000 ElementTree.py:1248(iterator)
+  1362772    2.308    0.000    3.045    0.000 sequence.py:24(__set__)
+   681479    0.606    0.000    2.655    0.000 nested.py:26(__set__)
+   681364    1.178    0.000    2.274    0.000 text.py:173(content)
+     3249    0.007    0.000    2.195    0.001 ElementTree.py:1293(feed)
+     3254    2.189    0.001    2.189    0.001 {method 'feed' of 'xml.etree.ElementTree.XMLParser' objects}
+   681825    0.776    0.000    1.951    0.000 base.py:68(__set__)
+  1363445    1.220    0.000    1.849    0.000 base.py:39(__set__)
+  2115524    1.290    0.000    1.717    0.000 ElementTree.py:1317(read_events)
+    68142    0.261    0.000    1.621    0.000 _openpyxl.py:746(<listcomp>)
+   681447    0.739    0.000    1.449    0.000 functions.py:77(localname)
+    68140    0.816    0.000    1.424    0.000 _read_only.py:105(_get_row)
+   681377    1.201    0.000    1.360    0.000 _openpyxl.py:713(_convert_cell)
+8248090/8248069    1.095    0.000    1.095    0.000 {built-in method builtins.isinstance}
+
+
+
+
+LECTURA calamine: Probabilidad y Estadística
+         3615192 function calls (3615116 primitive calls) in 2.176 seconds
+
+   Ordered by: cumulative time
+   List reduced from 321 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    2.204    2.204 perfilar_lectura.py:26(leer)
+        1    0.025    0.025    2.204    2.204 _base.py:162(read_excel)
+        1    0.010    0.010    2.174    2.174 _base.py:734(parse)
+        1    0.000    0.000    1.124    1.124 _calamine.py:103(get_sheet_data)
+    68142    0.268    0.000    0.957    0.000 _calamine.py:127(<listcomp>)
+        1    0.000    0.000    0.859    0.859 _calamine.py:99(get_sheet_by_index)
+        1    0.859    0.859    0.859    0.859 {method 'get_sheet_by_index' of 'builtins.CalamineWorkbook' objects}
+   681420    0.464    0.000    0.689    0.000 _calamine.py:106(_convert_cell)
+2726717/2726696    0.225    0.000    0.225    0.000 {built-in method builtins.isinstance}
+        1    0.003    0.003    0.181    0.181 _base.py:834(_parse_sheet)
+        1    0.001    0.001    0.177    0.177 readers.py:3015(read)
+        1    0.140    0.140    0.140    0.140 {method 'to_python' of 'builtins.CalamineSheet' objects}
+        1    0.000    0.000    0.122    0.122 python_parser.py:279(read)
+        1    0.000    0.000    0.080    0.080 python_parser.py:372(_convert_data)
+        1    0.000    0.000    0.080    0.080 python_parser.py:407(_convert_to_ndarrays)
+       10    0.072    0.007    0.072    0.007 base_parser.py:462(_infer_types)
+       10    0.000    0.000    0.053    0.005 series.py:360(__init__)
+       12    0.008    0.001    0.053    0.004 construction.py:580(sanitize_array)
+       12    0.051    0.004    0.051    0.004 string_arrow.py:233(_from_sequence)
+        1    0.015    0.015    0.040    0.040 python_parser.py:1202(_rows_to_cols)
+        2    0.007    0.003    0.025    0.012 {built-in method builtins.max}
+    68137    0.014    0.000    0.018    0.000 python_parser.py:1208(<genexpr>)
+        1    0.000    0.000    0.006    0.006 python_parser.py:495(_cast_types)
+        1    0.000    0.000    0.006    0.006 string_arrow.py:298(_from_sequence_of_strings)
+        1    0.000    0.000    0.005    0.005 _base.py:1658(__init__)
+
+
+
+
+CONSTRUCCIÓN DEL RESUMEN
+         30735 function calls (29897 primitive calls) in 0.156 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1032 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.001    0.001    0.156    0.156 procesamiento.py:352(resumir_trazabilidad)
+        1    0.000    0.000    0.043    0.043 procesamiento.py:311(completar_eventos)
+        1    0.000    0.000    0.034    0.034 procesamiento.py:46(obtener_alumnos)
+        1    0.000    0.000    0.032    0.032 generic.py:2076(aggregate)
+        2    0.001    0.000    0.031    0.015 frame.py:8918(duplicated)
+    22/21    0.000    0.000    0.028    0.001 algorithms.py:837(factorize)
+        1    0.001    0.001    0.027    0.027 datetimes.py:834(to_datetime)
+        1    0.000    0.000    0.025    0.025 datetimes.py:368(_convert_listlike_datetimes)
+       18    0.023    0.001    0.024    0.001 array.py:2044(factorize)
+        7    0.000    0.000    0.021    0.003 managers.py:1069(take)
+        1    0.020    0.020    0.021    0.021 datetimes.py:507(_array_strptime_with_fallback)
+       10    0.000    0.000    0.021    0.002 frame.py:9020(f)
+        8    0.000    0.000    0.020    0.003 managers.py:817(reindex_indexer)
+        1    0.000    0.000    0.020    0.020 apply.py:335(agg)
+        1    0.000    0.000    0.020    0.020 apply.py:574(agg_dict_like)
+        1    0.000    0.000    0.020    0.020 apply.py:1873(agg_or_apply_dict_like)
+       34    0.001    0.000    0.020    0.001 array.py:2237(take)
+    52/45    0.000    0.000    0.019    0.000 take.py:60(take_nd)
+       26    0.000    0.000    0.019    0.001 blocks.py:1054(take_nd)
+        5    0.000    0.000    0.019    0.004 accessor.py:134(wrapper)
+
+

@@ -1,0 +1,212 @@
+{
+  "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "pandas": "3.1.0",
+  "openpyxl": "3.1.5",
+  "python_calamine": "0.9.1",
+  "fuentes_sha256": {
+    "Algoritmos y Estructuras de Datos": "6dfea1ef32893df2e2ea0d1a4986cbedea5501637fa7c218efc42fde6d382bb9",
+    "Probabilidad y Estadística": "1c0161f726798fd67887a679a436b4a1160eb00c7a6a1e29d50dcae3983be079",
+    "Álgebra": "603850f095d26dfc35d218a013683bc9f49a28c55ce96f24cad05825063f7e0c"
+  },
+  "metodo": "Lecturas completas sin cache de aplicacion; orden invertido en la segunda ronda; cache del SO sin vaciar. El perfil no participa en los tiempos comparados.",
+  "mediciones": [
+    {
+      "materia": "Algoritmos y Estructuras de Datos",
+      "ronda": 1,
+      "motor": "openpyxl",
+      "lectura_s": 7.340818700031377,
+      "resumen_s": 0.17452250001952052,
+      "filas": 45951,
+      "grupos": 15361,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Algoritmos y Estructuras de Datos",
+      "ronda": 1,
+      "motor": "calamine",
+      "lectura_s": 1.292427400010638,
+      "resumen_s": 0.11717360001057386,
+      "filas": 45951,
+      "grupos": 15361,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Algoritmos y Estructuras de Datos",
+      "ronda": 1,
+      "motor": "openpyxl_values",
+      "lectura_s": 6.086851799977012,
+      "resumen_s": 0.09267430001636967,
+      "filas": 45951,
+      "grupos": 15361,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Algoritmos y Estructuras de Datos",
+      "ronda": 2,
+      "motor": "openpyxl_values",
+      "lectura_s": 6.0512525999802165,
+      "resumen_s": 0.0939107000012882,
+      "filas": 45951,
+      "grupos": 15361,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Algoritmos y Estructuras de Datos",
+      "ronda": 2,
+      "motor": "calamine",
+      "lectura_s": 0.9560877999756485,
+      "resumen_s": 0.09742510004434735,
+      "filas": 45951,
+      "grupos": 15361,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Algoritmos y Estructuras de Datos",
+      "ronda": 2,
+      "motor": "openpyxl",
+      "lectura_s": 7.220230299979448,
+      "resumen_s": 0.0913303000270389,
+      "filas": 45951,
+      "grupos": 15361,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Probabilidad y Estadística",
+      "ronda": 1,
+      "motor": "openpyxl",
+      "lectura_s": 10.655381799966563,
+      "resumen_s": 0.1617467000032775,
+      "filas": 68136,
+      "grupos": 24925,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Probabilidad y Estadística",
+      "ronda": 1,
+      "motor": "calamine",
+      "lectura_s": 1.4281064000097103,
+      "resumen_s": 0.16912239999510348,
+      "filas": 68136,
+      "grupos": 24925,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Probabilidad y Estadística",
+      "ronda": 1,
+      "motor": "openpyxl_values",
+      "lectura_s": 9.045523699955083,
+      "resumen_s": 0.13442699995357543,
+      "filas": 68136,
+      "grupos": 24925,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Probabilidad y Estadística",
+      "ronda": 2,
+      "motor": "openpyxl_values",
+      "lectura_s": 8.976751900045201,
+      "resumen_s": 0.1320422999560833,
+      "filas": 68136,
+      "grupos": 24925,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Probabilidad y Estadística",
+      "ronda": 2,
+      "motor": "calamine",
+      "lectura_s": 1.5128104000468738,
+      "resumen_s": 0.13888390001375228,
+      "filas": 68136,
+      "grupos": 24925,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Probabilidad y Estadística",
+      "ronda": 2,
+      "motor": "openpyxl",
+      "lectura_s": 10.665453699999489,
+      "resumen_s": 0.14786789997015148,
+      "filas": 68136,
+      "grupos": 24925,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Álgebra",
+      "ronda": 1,
+      "motor": "openpyxl",
+      "lectura_s": 8.02782209997531,
+      "resumen_s": 0.18030910001834854,
+      "filas": 45717,
+      "grupos": 19446,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Álgebra",
+      "ronda": 1,
+      "motor": "calamine",
+      "lectura_s": 1.1420149999903515,
+      "resumen_s": 0.10796140000456944,
+      "filas": 45717,
+      "grupos": 19446,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Álgebra",
+      "ronda": 1,
+      "motor": "openpyxl_values",
+      "lectura_s": 6.027105199988,
+      "resumen_s": 0.09149080002680421,
+      "filas": 45717,
+      "grupos": 19446,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Álgebra",
+      "ronda": 2,
+      "motor": "openpyxl_values",
+      "lectura_s": 6.085810300020967,
+      "resumen_s": 0.08750349999172613,
+      "filas": 45717,
+      "grupos": 19446,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Álgebra",
+      "ronda": 2,
+      "motor": "calamine",
+      "lectura_s": 0.9546490000211634,
+      "resumen_s": 0.10753480001585558,
+      "filas": 45717,
+      "grupos": 19446,
+      "equivalente": true,
+      "diferencia": null
+    },
+    {
+      "materia": "Álgebra",
+      "ronda": 2,
+      "motor": "openpyxl",
+      "lectura_s": 7.214383999991696,
+      "resumen_s": 0.12265360000310466,
+      "filas": 45717,
+      "grupos": 19446,
+      "equivalente": true,
+      "diferencia": null
+    }
+  ]
+}

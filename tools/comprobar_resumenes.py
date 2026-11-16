@@ -21,7 +21,12 @@ def main():
     exec(compile(fuente, "procesamiento_anterior.py", "exec"), anterior.__dict__)
     for materia in datos.detectar_materias():
         original = datos.leer_trazabilidad(materia)
-        completos = anterior.preparar_trazabilidad(original)
+        original_anterior = pd.read_excel(
+            datos.buscar_reporte(materia, "trazabilidad"), header=5,
+            usecols=original.columns.tolist(), dtype={"Usuario": "string"}, engine="openpyxl",
+        )
+        pd.testing.assert_frame_equal(original, original_anterior)
+        completos = anterior.preparar_trazabilidad(original_anterior)
         resumen = datos.leer_resumen_trazabilidad(materia)
         compactos = resumen["eventos"]
         assert resumen["total_reporte"] == len(original)
@@ -64,7 +69,7 @@ def main():
         pd.testing.assert_frame_equal(actual.resumir_resultados_alumnos(notas, materia),
                                       anterior.resumir_resultados_alumnos(notas, materia))
         print(f"OK {materia}: {len(completos)} eventos, {len(compactos)} grupos; "
-              "conteos, filtros, mapa, series, historial y calificaciones coinciden.", flush=True)
+              "lectura completa, conteos, filtros, mapa, series, historial y calificaciones coinciden.", flush=True)
 
 
 if __name__ == "__main__":

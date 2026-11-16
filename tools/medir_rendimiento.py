@@ -31,6 +31,8 @@ import vistas
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--salida", type=Path, required=True)
+    parser.add_argument("--motor-trazabilidad", choices=["openpyxl", "calamine"],
+                        help="Fuerza solo la lectura completa de trazabilidad para comparar lectores.")
     opciones = parser.parse_args()
     tiempos, llamadas = defaultdict(float), defaultdict(int)
     pila = threading.local()
@@ -121,7 +123,17 @@ def main():
             for nombre, funcion in list(vars(modulo).items()):
                 if id(funcion) in envueltas:
                     parches.enter_context(patch.object(modulo, nombre, envueltas[id(funcion)]))
-        parches.enter_context(patch.object(pd, "read_excel", instrumentar(pd.read_excel, "excel")))
+        leer_excel_original = pd.read_excel
+
+        def leer_excel_comparado(*args, **kwargs):
+            ruta = args[0] if args else kwargs.get("io", "")
+            if (opciones.motor_trazabilidad
+                    and Path(str(ruta)).name.startswith("reporte_trazabilidad_")
+                    and kwargs.get("header") == 5):
+                kwargs["engine"] = opciones.motor_trazabilidad
+            return leer_excel_original(*args, **kwargs)
+
+        parches.enter_context(patch.object(pd, "read_excel", instrumentar(leer_excel_comparado, "excel")))
         parches.enter_context(patch.object(DeltaGenerator, "metric", medir_primera_metrica))
         materias = datos.detectar_materias()
 
@@ -162,6 +174,7 @@ def main():
                for p in datos.CARPETA_DATOS.rglob("*.xlsx")}
     opciones.salida.parent.mkdir(parents=True, exist_ok=True)
     opciones.salida.write_text(json.dumps({"python": sys.version, "streamlit": st.__version__,
+        "motor_trazabilidad": opciones.motor_trazabilidad or "configurado_en_app",
         "fuentes_sha256": fuentes, "mediciones": resultados}, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
