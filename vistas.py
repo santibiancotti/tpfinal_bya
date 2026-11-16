@@ -662,10 +662,14 @@ def mostrar_rendimiento(calificaciones, materia):
 
         st.dataframe(distribucion, hide_index=True)
 
-        st.subheader("Condición según notas informadas")
+        etiqueta = etiqueta_condicion(materia, "Condición según notas informadas")
+        st.subheader(etiqueta)
         condiciones = resumir_condiciones(resultados)
-        st.bar_chart(condiciones, x="Condición académica", y="Alumnos", sort=False)
-        st.dataframe(condiciones.round({"Porcentaje (%)": 2}), hide_index=True)
+        condiciones = condiciones.rename(columns={"Condición académica": etiqueta_condicion(materia)})
+        if materia == "Álgebra":
+            condiciones = condiciones.rename(columns={"Porcentaje (%)": "Porcentaje por condición proyectada (%)"})
+        st.bar_chart(condiciones, x=etiqueta_condicion(materia), y="Alumnos", sort=False)
+        st.dataframe(condiciones.round(2), hide_index=True)
         st.caption(
             f"Denominador: {len(resultados)} estudiantes presentes en calificaciones. "
             "No incluye alumnos del aula sin filas en esos archivos. "
@@ -673,7 +677,13 @@ def mostrar_rendimiento(calificaciones, materia):
         )
         mostrar_criterio_academico(materia)
 
-def mostrar_semaforo(condicion):
+def etiqueta_condicion(materia, habitual="Condición académica"):
+    if materia == "Álgebra":
+        return "Condición proyectada según notas informadas"
+    return habitual
+
+
+def mostrar_semaforo(condicion, materia):
     colores = {
         "Promociona": "#15803D",
         "Regular": "#EAB308",
@@ -693,7 +703,7 @@ def mostrar_semaforo(condicion):
                        border-radius: 50%; background-color: {color};"
             ></span>
             <span>
-                <strong>Condición según notas informadas</strong>
+                <strong>{etiqueta_condicion(materia, "Condición según notas informadas")}</strong>
                 · {condicion}
             </span>
         </div>
@@ -811,7 +821,7 @@ def mostrar_individual(base_alumnos, calificaciones, materia, cargar_historial):
         ]
 
         if notas.empty:
-            mostrar_semaforo("Sin notas informadas")
+            mostrar_semaforo("Sin notas informadas", materia)
             return
 
         try:
@@ -823,7 +833,7 @@ def mostrar_individual(base_alumnos, calificaciones, materia, cargar_historial):
             valor = fila["Resultado observado"]
             maximo = fila.get("Máximo de sus notas", 100)
 
-            mostrar_semaforo(fila["Condición académica"])
+            mostrar_semaforo(fila["Condición académica"], materia)
 
             if materia == "Álgebra" and pd.notna(valor):
                 porcentaje = fila["Rendimiento observado (%)"]
@@ -873,10 +883,10 @@ def mostrar_individual(base_alumnos, calificaciones, materia, cargar_historial):
 def mostrar_criterio_academico(materia):
     if materia == "Álgebra":
         st.caption(
-            "Álgebra suma puntos. La condición conserva las proporciones del esquema: "
-            "regular desde 60/120 (50 %) y promociona desde 85/120 (70,83 %). "
-            "Con notas parciales se aplica esa proporción sobre el máximo de las notas "
-            "informadas de cada estudiante. Se actualiza al incorporar nuevas notas."
+            "En Álgebra, la condición se proyecta proporcionalmente a partir de los puntos "
+            "obtenidos y el máximo de las evaluaciones con nota. Por ejemplo, 34/45 equivale "
+            "a 90,67/120 y proyecta promoción. La proyección se actualiza al incorporar "
+            "nuevas calificaciones."
         )
     else:
         promocion = 90 if materia == "Algoritmos y Estructuras de Datos" else 85
@@ -916,7 +926,12 @@ def mostrar_general(resumen, alumnos, resultados, tendencias):
                 st.info("Sin resultados observados.")
             else:
                 st.bar_chart(distribucion, x="Intervalo", y="Alumnos", sort=False, height=200)
-            st.dataframe(resumir_condiciones(notas).round(2), hide_index=True)
+            condiciones = resumir_condiciones(notas).rename(
+                columns={"Condición académica": etiqueta_condicion(materia)}
+            )
+            if materia == "Álgebra":
+                condiciones = condiciones.rename(columns={"Porcentaje (%)": "Porcentaje por condición proyectada (%)"})
+            st.dataframe(condiciones.round(2), hide_index=True)
             st.caption(
                 f"Denominador de las condiciones: {len(notas)} estudiantes en calificaciones. "
                 "Histograma del resultado observado: suma en Álgebra, promedio en las otras materias. "
@@ -971,16 +986,18 @@ def mostrar_relacion(datos, materia):
         st.caption("La dispersión usa el porcentaje sobre las notas informadas de cada estudiante, "
                    "para distinguirlo de la suma de puntos con máximos parciales diferentes.")
     mostrar_criterio_academico(materia)
-    st.subheader("Patrones de actividad y condición académica")
+    st.subheader("Patrones de actividad y condición proyectada" if materia == "Álgebra"
+                 else "Patrones de actividad y condición académica")
     grupos = seleccion.groupby(
         ["Situación de actividad", "Condición académica"], as_index=False
     ).agg(Estudiantes=("Identificación", "size"))
     grupos["Porcentaje de la población (%)"] = 100 * grupos["Estudiantes"] / len(seleccion)
-    st.bar_chart(grupos, x="Condición académica", y="Estudiantes", color="Situación de actividad", stack=False)
+    grupos = grupos.rename(columns={"Condición académica": etiqueta_condicion(materia)})
+    st.bar_chart(grupos, x=etiqueta_condicion(materia), y="Estudiantes", color="Situación de actividad", stack=False)
     st.dataframe(grupos.round(2), hide_index=True)
     st.caption(
         "Grupos descriptivos definidos por la actividad registrada (>0 interacciones) "
-        "y la condición calculada con las reglas académicas. Se conservan las categorías "
+        f"y la condición {'proyectada' if materia == 'Álgebra' else 'calculada'} con las reglas académicas. Se conservan las categorías "
         "sin datos. Los porcentajes usan toda la población seleccionada. "
         "No se asigna una categoría nueva de riesgo. El detalle personal se consulta en Individual."
     )

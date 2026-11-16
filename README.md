@@ -18,7 +18,7 @@ Las lecturas se cachean por ruta, fecha de modificación y tamaño. La trazabili
 
 - Actividad: al menos una interacción durante el período del reporte. Usuarios del reporte, alumnos del aula, matrícula vigente y alumnos activos son poblaciones distintas. Sin registro de matrícula no significa baja.
 - Matrícula vigente: último movimiento por fecha de inscripción y número de transacción, con estado Aceptada. Los cruces validan una fila por identificador dentro de cada materia.
-- Álgebra: suma de puntos y porcentaje sobre el máximo de las notas informadas de cada estudiante. Por decisión del usuario, la condición con notas parciales conserva las proporciones de la consigna: regular desde 60/120 y promociona desde 85/120. Por ejemplo, 34/45 equivale a 90,67/120 y promociona. Con el esquema completo, los cortes vuelven a ser exactamente 60 y 85 puntos sobre 120.
+- Álgebra: suma de puntos y porcentaje sobre el máximo de las notas informadas de cada estudiante. La condición proyectada al momento de consultar conserva las proporciones de la consigna: regular desde 60/120 y promociona desde 85/120. Por ejemplo, 34/45 equivale a 90,67/120 y proyecta promoción, conservando la categoría «Promociona». La proyección se actualiza al incorporar nuevas calificaciones. Con el esquema completo, los cortes vuelven a ser exactamente 60 y 85 puntos sobre 120.
 - Probabilidad y Estadística: promedio de notas informadas sobre 100, incluido el recuperatorio. Regular desde 60 y promociona desde 85.
 - Algoritmos: promedio de notas informadas sobre 100. Regular desde 60 y promociona desde 90.
 - Una nota faltante queda faltante; no se convierte en cero. Un cero informado sí participa. Los formatos no numéricos desconocidos generan un mensaje de error para revisar la fuente.
@@ -64,7 +64,7 @@ Se comprobó que las uniones no multiplican estudiantes. La carga de matrícula,
 
 ## Limitaciones de las fuentes y alcance
 
-Álgebra solo incluye Parcial 1 y dos autoevaluaciones (hasta 45 de los 120 puntos). La condición es provisional según las notas informadas y se actualiza al incorporar instrumentos. En las otras materias también se conserva el promedio observado, sin imputar evaluaciones ausentes.
+Álgebra solo incluye Parcial 1 y dos autoevaluaciones (hasta 45 de los 120 puntos). Su condición se presenta como «Condición proyectada según notas informadas», también en los porcentajes y agrupaciones. En las otras materias se conserva el promedio observado, sin imputar evaluaciones ausentes.
 
 Los reportes indican período mayo-octubre de 2025, pero los eventos presentes comienzan el 05/08/2025. Las tendencias de General incluyen días sin eventos dentro del período exportado. Los filtros detallados de actividad se limitan al intervalo con eventos y el resumen de participación permanece referido al reporte completo.
 
