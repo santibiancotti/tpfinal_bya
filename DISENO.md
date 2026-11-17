@@ -1,49 +1,76 @@
-# Presentación de Inicio y General
+# Presentación de las siete vistas
 
-Entrega del 17/11/2026. El rediseño conserva las siete páginas independientes, los botones de navegación, los cálculos y las cachés. No agrega dependencias ni modifica fuentes.
+Entrega del 17/11/2026. Inicio conserva General destacado y las seis tarjetas. Los dashboards comparten tema, encabezado y navegación compacta; cada vista mantiene su página independiente. El rediseño no agrega dependencias ni modifica fuentes, cálculos o cachés.
 
-## Jerarquía y navegación
+## Pregunta y primera lectura
 
-Inicio presenta un acceso principal a General y seis tarjetas con categoría, título, descripción y el mismo botón. Dentro de cada dashboard, la barra compacta identifica la vista activa y permite cambiar de dashboard o volver a Inicio. Actualizar fuentes permanece disponible en el encabezado.
+Antes de modificar cada vista se definieron su pregunta y su prioridad:
 
-General organiza la lectura en este orden: título y propósito, selección y período de los reportes, tres indicadores, actividad y condiciones comparables, resumen de resultados y tendencia. El resumen tiene una fila por asignatura; la distribución se consulta para una asignatura elegida. Las tablas adicionales y los criterios se abren por separado.
+| Vista | Pregunta principal | Se ve primero | Acceso al detalle |
+| --- | --- | --- | --- |
+| General | ¿Cómo se comparan la actividad y los resultados entre materias? | Tres indicadores, porcentajes de actividad y condición, tarjetas con resultado y escala de cada materia | Explorar distribución y condiciones; tendencia; Ver tablas de actividad y fuentes |
+| Participación | ¿Cuántos alumnos participan y cómo evoluciona la actividad? | Alumnos, actividad, cobertura y tiempo estimado; gráfico de actividad | Evolución de accesos; Ver alumnos; Ver valores diarios; reporte original |
+| Trazabilidad | ¿Cuándo y en qué acciones se concentra la actividad? | Indicadores de la selección y mapa horario | Pestañas por día, semana y acción con gráficos; Ver valores del resumen; Detalle; reporte original |
+| Rendimiento | ¿Cómo se comparan los instrumentos y se distribuyen los resultados? | Indicadores y comparación visual por instrumento | Distribución de resultados muestra histograma y condiciones; desplegables con sus valores |
+| Notas y participación | ¿Cómo se asocian la actividad y el rendimiento? | Pares completos, Pearson, dispersión y grupos visuales | Ver valores de los grupos; Criterios de la comparación; trazabilidad opcional |
+| Individual | ¿Cuál es la situación actual del estudiante? | Identidad, matrícula, actividad, semáforo y resultado; resumen visual al elegir estudiante | Notas muestra barras; Ver notas y observaciones; Historial de actividad y Ver eventos del estudiante |
+| Matrícula y alertas | ¿Cómo se cruza la situación administrativa con la actividad? | Indicadores, barras de matrícula y actividad y lista compacta de casos | Tres filtros de casos; Ver situaciones e interacciones; Ver historial de matrícula |
 
-Las comparaciones usan porcentajes con eje de 0 a 100 y el mismo orden de materias. Los tooltips indican materia completa, situación, porcentaje, cantidad de estudiantes, denominador y criterio. Los segmentos pequeños conservan su tooltip aunque no quepa una etiqueta dentro de la barra. La leyenda muestra las categorías presentes, respetando su orden académico.
+La jerarquía común es encabezado y filtros, indicadores compactos, gráficos, detalle solicitado y criterios desplegables. La pantalla inicial no muestra tablas en seis vistas. Matrícula conserva una lista de tres columnas (estudiante, ID y alerta), necesaria para identificar los casos; las situaciones e interacciones quedan como profundidad adicional.
 
-Los resultados medios mantienen escalas explícitas: puntos acumulados parciales para Álgebra y promedios sobre 100 para las otras materias. La distribución conserva los intervalos calculados previamente; no equipara sumas y promedios. La tendencia representa eventos de acceso, con fechas, recuentos y colores estables por materia.
+No se adjunta automáticamente la tabla a cada gráfico. Las notas de instrumentos, distribuciones, recuentos de grupos, alumnos y eventos se preparan y envían cuando se solicita su sección. Las explicaciones completas están en Criterios de cada vista, con unidades, bases y avisos breves donde afectan la interpretación.
 
-Álgebra conserva «Condición proyectada según notas informadas» en el gráfico de porcentajes, su tooltip y el detalle. La explicación completa se reutiliza desde `mostrar_criterio_academico` una sola vez en Criterios y denominadores. 34/45 sigue proyectando «Promociona».
-
-## Estilo reutilizable
+## Estilo y componentes reutilizados
 
 | Uso | Decisión |
 | --- | --- |
 | Fondo y superficies | Fondo `#F4F7FB`, paneles blancos, bordes claros y radios de 12–16 px |
-| Títulos y texto | Azul profundo `#173653`, texto secundario `#526579`, tamaños y espaciado jerárquicos |
-| Acento interactivo | Verde azulado `#0F766E` para botones principales y navegación activa |
+| Títulos y texto | Azul profundo `#173653`, texto secundario `#526579`, jerarquía de tamaños y espaciado |
+| Acento interactivo | Verde azulado `#0F766E` para acciones, selección y gráficos sin categoría académica |
 | Condiciones académicas | Libre `#DC2626`, Regular `#EAB308`, Promociona `#15803D`; se conservan los círculos reales del semáforo |
-| Materias | Álgebra violeta `#6D56A0`, Probabilidad verde azulado `#0F766E`, Algoritmos azul `#2563EB`, constantes entre tendencia y distribución |
-| Números y fechas | Coma decimal, separador de miles cuando corresponde, porcentajes con una decimal y fechas `DD/MM/YYYY`; gráficos temporales con eje `DD/MM` |
-| Tablas | Columnas breves y relevantes primero, índice oculto, unidades explícitas y detalle secundario desplegable |
+| Materias | Álgebra violeta `#6D56A0`, Probabilidad verde azulado `#0F766E`, Algoritmos azul `#2563EB` |
+| Actividad | Azul para actividad, gris claro para ausencia informada; categorías sin datos diferenciadas |
+| Indicadores | Tarjetas de tamaño común, ayudas nativas y etiquetas que admiten saltos de línea |
+| Números y fechas | Coma decimal en indicadores y tarjetas, unidades explícitas, fechas de detalle `DD/MM/YYYY` y ejes temporales `DD/MM` |
+| Tablas | Índice oculto, columnas prioritarias y altura limitada; valores secundarios bajo demanda |
 
-El color de condición describe la categoría académica; el color de materia solo distingue series. El acento identifica acciones y selección. Las diferencias se expresan también con texto y leyendas.
+Los colores identifican materias, actividad o condición según la leyenda de cada gráfico. La condición académica conserva sus colores y su orden Libre → Regular → Promociona; el estado sigue escrito. Los gráficos omiten categorías sin casos cuando no aportan información, y los valores tabulares conservan todas las categorías, incluidos ceros.
 
-Archivos y componentes para continuar:
+Se reutilizan los componentes nativos de Streamlit y las funciones existentes de procesamiento. Los archivos de presentación son:
 
-- `.streamlit/config.toml`: tema claro nativo de Streamlit.
-- `estilos.py`: paleta, nombres breves, formato numérico, `mostrar_encabezado`, configuración común `graficar` y CSS acotado mediante claves de contenedores. Las firmas de contenido de los gráficos mantienen su actualización al cambiar datos o filtros.
-- `graficos.py`: porcentajes por materia, distribución y tendencia con escalas y tooltips explícitos; recibe resúmenes existentes.
-- `vistas.py`: catálogo de dashboards, barra de navegación, tarjetas, paneles y detalle de General. Se reutilizan `st.container`, `st.columns`, `st.metric`, `st.dataframe`, selectores y desplegables de Streamlit.
-- `app.py`: composición y carga existentes. El tema y la navegación no requieren lecturas adicionales.
+- `.streamlit/config.toml`: tema claro nativo.
+- `estilos.py`: paleta, encabezado, `indicadores`, `tarjeta_resultado`, formato numérico, configuración común `graficar` y CSS acotado a claves de contenedores.
+- `graficos.py`: porcentajes, distribución, tendencia, barras de resúmenes, series de eventos, cruces de categorías y dispersión. Las firmas de contenido mantienen la actualización de gráficos al cambiar datos o filtros.
+- `vistas.py`: composición de las siete vistas, navegación, secciones y tablas opcionales.
+- `app.py`: páginas y cargas existentes; el contexto visible se reduce al período del reporte.
 
-Para las otras seis vistas ya están disponibles el tema, el encabezado y la barra. En su rediseño posterior se pueden repetir los paneles con clave `panel_…`, la jerarquía de indicadores y la configuración de gráficos, conservando las unidades y denominadores propios de cada vista.
+## Escalas, poblaciones y avisos
 
-## Adaptación y comprobaciones
+General conserva tarjetas separadas: Álgebra muestra la media de puntos acumulados parciales en un esquema de 120; las otras materias muestran promedios sobre 100. No se obtiene un promedio global entre esas escalas. El histograma conserva los intervalos calculados previamente.
 
-En escritorio amplio, actividad y condición se muestran lado a lado. Por debajo de 950 px se apilan, al igual que las dos columnas del acceso destacado. La navegación se distribuye en filas cuando falta espacio. Las etiquetas de indicadores admiten saltos de línea y reservan una altura común; las tarjetas siguen el comportamiento adaptable de las columnas de Streamlit. Por debajo de 640 px se reducen márgenes y tamaños principales.
+La condición de Álgebra siempre se identifica como proyectada: en General, Rendimiento, los grupos de Notas y participación y la ficha Individual. La explicación completa se reutiliza con `mostrar_criterio_academico`, una vez por materia y vista, dentro de sus criterios. 34/45 equivale a 90,67/120 y sigue clasificando como «Promociona».
 
-Se inspeccionó la app original antes de modificarla y se revisó el resultado en navegador real a 1440 y 780 px de ancho: Inicio, los siete accesos, regreso a Inicio, cambio entre dashboards, General con una y tres materias, distribución, tendencia, tooltips, fuentes con fechas y metodología. Se corrigieron etiquetas recortadas por el componente nativo de indicadores. No se observaron superposiciones, desplazamiento horizontal de la página ni errores de consola en esos anchos.
+Los porcentajes académicos de General y Rendimiento conservan como base los estudiantes presentes en los archivos de calificaciones. Participación usa los alumnos con dato de actividad, sin convertir los faltantes en inactivos. Los grupos de Notas y participación y el cruce de Matrícula usan toda la población seleccionada y filtrada: el tooltip identifica su denominador. Las correlaciones usan solo pares completos, muestran su cantidad y advierten que no demuestran causalidad.
 
-Las 27 pruebas del entorno virtual aprobaron, incluidas las nuevas comprobaciones de navegación y detalle, las seis pruebas de carga diferida y las reglas académicas. Los 34 escenarios conservan sus métricas y los 26 Excel sus hashes. Los tiempos y el límite de lectura en frío permanecen documentados en [RENDIMIENTO.md](RENDIMIENTO.md).
+Las tendencias representan eventos, no sesiones. Las repeticiones se conservan. La actividad de matrícula se refiere al período completo y puede ser anterior a una baja; sin registro administrativo no significa baja. Los avisos de datos insuficientes o períodos incompatibles siguen visibles cuando corresponden.
 
-El CSS usa selectores `data-testid` y claves estables de contenedores, sin depender de clases generadas. Una actualización de Streamlit puede requerir revisar esos selectores. La revisión visual cubre los dos anchos indicados; las otras seis vistas conservan su composición específica para una entrega posterior.
+## Carga y adaptación
+
+Se conservan los `st.tabs` y desplegables con `on_change="rerun"` y comprobación de `.open`. La evolución de Participación, la tendencia de General, los indicadores adicionales de Notas y participación y el historial Individual siguen cargándose al solicitarlos. Las tablas opcionales, incluidos el historial de matrícula y los valores de cada resumen, se construyen dentro de su sección abierta. Actualizar fuentes conserva el vaciado de cachés y las firmas por materia, ruta, modificación y tamaño.
+
+En escritorio amplio los gráficos comparables pueden verse en dos columnas. Por debajo de 950 px se apilan y las filas de cuatro indicadores pasan a dos columnas. Las tres tarjetas de General siguen compactas a 780 px. Navegación y etiquetas se acomodan al espacio disponible. Por debajo de 640 px se reducen márgenes y títulos; se conserva el comportamiento adaptable de Streamlit.
+
+## Validación
+
+Se inspeccionaron las vistas antes de modificarlas y se revisaron las siete en navegador real a 1440 y 780 px: lectura de gráficos, etiquetas y escalas, selección de materias, General con una y tres, filtros de casos, notas e historial, tablas opcionales, tendencia, navegación y regreso a Inicio. El filtro de alerta de Matrícula redujo correctamente indicadores y lista a dos casos. Se comprobaron tooltips y denominadores. No se observaron superposiciones, desbordamiento horizontal de la página ni errores de renderizado; las desconexiones de los reinicios controlados del servidor se distinguieron de errores de la aplicación.
+
+La suite del entorno virtual aprobó sus 29 pruebas en 72,680 s: 15 de lectura, reglas y procesamiento, 8 de vistas y 6 de cargas diferidas y actualización. Las nuevas comprobaciones verifican que las tablas aparezcan solo al pedirlas, que sus recuentos mantengan la población, que las tarjetas sustituyan la tabla inicial de General y que la ficha conserve el círculo del semáforo.
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe tools/medir_rendimiento.py --salida mediciones/visual_siete_vistas_2026-11-17.json
+```
+
+Las 86 métricas comunes de los 34 escenarios y los hashes de los 26 Excel coinciden con la revisión anterior. En la comparación actual la navegación con caché tarda 0,11–0,38 s; la primera tendencia de General tarda 14,64 s frente a 14,31 s en la versión anterior medida en el mismo entorno. Las mediciones de navegación, primeras lecturas y actualización se registran en [RENDIMIENTO.md](RENDIMIENTO.md). El límite de lectura en frío de las trazabilidades sigue existiendo y se informa durante la carga. La medición con AppTest no incluye la pintura del navegador.
+
+El CSS utiliza claves de contenedores y selectores `data-testid`, sin clases generadas. Una actualización de Streamlit puede requerir revisar esos selectores. La validación visual cubre los dos anchos indicados.

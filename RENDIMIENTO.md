@@ -161,3 +161,35 @@ Se aprobaron las 27 pruebas existentes y ampliadas, incluidas las comprobaciones
 .\.venv\Scripts\python.exe tools/medir_rendimiento.py --salida mediciones/diseno_2026-11-17.json
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
+
+
+## Siete vistas con gráficos primero · 17/11/2026
+
+Se completó la jerarquía visual de las siete vistas. General cambia su tabla inicial por tarjetas, Participación y Trazabilidad abren sus tablas al solicitarlas, Rendimiento difiere sus pestañas y valores, Notas y participación muestra grupos visuales, Individual prioriza ficha y resultados, y Matrícula conserva una lista compacta de tres columnas. Los eventos, originales y resultados tabulares se preparan solo en su sección abierta.
+
+La primera medición del rediseño resultó más lenta que la referencia histórica también dentro de las etapas de Excel. Para comparar en condiciones actuales se ejecutó la revisión anterior `79423a6` en un checkout aislado, con el mismo entorno virtual y las mismas fuentes. Se midieron secuencialmente los mismos 34 escenarios en procesos nuevos; la ejecución del rediseño precedió a la de referencia. No se cambiaron los lectores, los datos ni las reglas.
+
+| Escenario | Anterior en el entorno actual (s) | Rediseño (s) |
+| --- | ---: | ---: |
+| General, primera entrada sin caché | 3,805 | 3,910 |
+| General, segunda entrada | 0,341 | 0,315 |
+| General, seleccionar una materia | 0,204 | 0,192 |
+| General, seleccionar tres materias | 0,304 | 0,337 |
+| General, primera tendencia sin caché | 14,311 | 14,636 |
+| General, tendencia con caché | 0,385 | 0,375 |
+| General, actualizar fuentes | 2,837 | 2,927 |
+| General, tendencia tras actualizar | 14,942 | 14,457 |
+| Participación, segunda entrada | 0,112 | 0,115 |
+| Trazabilidad, segunda entrada | 0,168 | 0,192 |
+| Notas y participación, segunda entrada | 0,371 | 0,192 |
+| Individual, segunda entrada | 0,124 | 0,138 |
+| Rendimiento, segunda entrada | 0,288 | 0,134 |
+| Matrícula, segunda entrada | 0,131 | 0,179 |
+
+La lectura de Excel en la primera tendencia consumió 12,241 s en la revisión anterior y 12,451 s en el rediseño. En la primera entrada de General, Excel consumió 2,895 y 2,988 s respectivamente. Los mayores tiempos respecto de mediciones históricas también se reproducen en la versión anterior: esta comparación no atribuye esa diferencia de entorno al diseño. Son ejecuciones individuales, no una estimación estadística, y AppTest no mide transferencia ni pintura del navegador. En ambas revisiones la navegación con caché se mantiene por debajo de 0,4 s en estos escenarios.
+
+Las tablas enviadas al entrar se redujeron de 2.270 a 0 bytes en General, de 42.462 a 0 en Participación, de 4.684 a 0 en Rendimiento y de 2.052 a 0 en Notas y participación. Matrícula pasó de 49.996 a 15.878 bytes conservando su lista identificable. Son tamaños en memoria de las tablas instrumentadas, no medidas de transferencia total; los gráficos siguen enviando sus resúmenes necesarios.
+
+Los 34 escenarios terminaron sin errores. Coinciden las 86 métricas con etiquetas comunes, normalizando solo el separador decimal de presentación; algunos indicadores secundarios se trasladaron a ayudas o criterios y se añadieron indicadores visibles. Los recuentos y porcentajes de los detalles se contrastaron en las pruebas de vistas. Los hashes de los 26 XLSX coinciden entre ambas revisiones y con la medición previa.
+
+Evidencia: `mediciones/visual_base_comparable_2026-11-17.json` y `mediciones/visual_siete_vistas_2026-11-17.json`. Las 29 pruebas del entorno virtual aprobaron en 72,680 s, incluidas las seis de cargas diferidas y actualización de fuentes y las dos nuevas de tablas bajo demanda. La revisión del navegador abarcó las siete vistas a 1440 y 780 px, filtros, detalle, semáforo, tendencia, tooltips, actualización y regreso a Inicio. La lectura grande en frío sigue siendo costosa, muestra su estado de carga y no se anticipa al navegar. Las decisiones visuales y los accesos al detalle están en [DISENO.md](DISENO.md).
