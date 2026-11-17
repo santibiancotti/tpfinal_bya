@@ -133,3 +133,31 @@ El selector de motor es exclusivo de la herramienta de medición; la app usa Cal
 | matricula_frio | 0,219 | 0,223 |
 | matricula_reentrada | 0,038 | 0,046 |
 | matricula_cambio_materia | 0,200 | 0,201 |
+
+## Comprobación del rediseño visual · 17/11/2026
+
+Inicio y General se reorganizaron sin cambiar el lector, el procesamiento ni las cachés. La navegación interna ya no construye las siete tarjetas. General presenta dos gráficos agregados y una tabla de tres filas; la distribución de una materia, las tablas adicionales y la metodología se consultan en desplegables. La tendencia conserva su carga diferida real mediante `on_change="rerun"` y comprobación de `.open`.
+
+Se ejecutó la misma herramienta de 34 escenarios desde el entorno virtual. Comparación con la última medición validada (`frio_calamine.json`); resultados nuevos en `mediciones/diseno_2026-11-17.json`:
+
+| Escenario de General | Antes del rediseño (s) | Rediseño (s) |
+| --- | ---: | ---: |
+| Primera entrada, caché vacía | 1,485 | 1,291 |
+| Segunda entrada | 0,145 | 0,108 |
+| Seleccionar una materia | 0,077 | 0,059 |
+| Volver a tres materias | 0,125 | 0,083 |
+| Primera apertura de tendencia | 4,205 | 4,588 |
+| Tendencia con caché | 0,193 | 0,098 |
+| Actualizar fuentes, tendencia cerrada | 0,878 | 0,991 |
+| Tendencia después de actualizar | 4,224 | 5,431 |
+
+Son tiempos de ejecución con Streamlit AppTest, incluidos datos y construcción de la presentación; no miden la animación, transferencia ni pintura del navegador. Son ejecuciones individuales en el mismo equipo, no una comparación estadística. Las métricas de los 34 escenarios y los SHA256 de los 26 Excel coinciden con la versión anterior.
+
+La navegación se mantiene por debajo de 0,15 s con caché en los escenarios de General. La primera lectura de tres trazabilidades sigue siendo el límite: el tiempo en Excel pasó de 3,492 a 3,892 s en la primera apertura y de 3,524 a 4,618 s después de actualizar. El código de lectura permanece intacto; esta variación de lectura explica el mayor total en frío. La etapa instrumentada de presentación de esas aperturas pasó de aproximadamente 0,134 s a 0,036 y 0,053 s. El rediseño no elimina la espera de lectura ni la oculta detrás de una carga anticipada: al abrir la tendencia se informa qué se está cargando.
+
+Se aprobaron las 27 pruebas existentes y ampliadas, incluidas las comprobaciones de carga diferida y actualización manual y automática de fuentes. Se verificó además en el navegador real: las siete rutas, regreso a Inicio, cambio de dashboard, General con una y tres materias, apertura de tendencia, tooltips, fechas, escalas y explicaciones, en anchos de 1440 y 780 px. La condición proyectada de Álgebra y los colores del semáforo se conservan. Las decisiones de presentación están en [DISENO.md](DISENO.md).
+
+```powershell
+.\.venv\Scripts\python.exe tools/medir_rendimiento.py --salida mediciones/diseno_2026-11-17.json
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
