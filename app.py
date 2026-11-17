@@ -286,8 +286,7 @@ if pagina_actual.url_path not in (paginas["inicio"].url_path, paginas["general"]
     )
     try:
         desde, hasta = leer_periodo_reporte(st.session_state["materia_actual"])
-        st.caption(f"Participación del reporte: {desde:%d/%m/%Y} al {hasta:%d/%m/%Y}. "
-                   "Matrícula: último estado disponible en su archivo.")
+        st.caption(f"REPORTE · {desde:%d/%m/%Y} al {hasta:%d/%m/%Y}")
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
         st.stop()

@@ -16,7 +16,7 @@ def barras(datos, categoria, valor, unidad, *, colores=None, orden=None, porcent
         "y": {"field": categoria, "type": "nominal", "sort": orden or "-x",
               "axis": {"title": None, "labelLimit": 260}},
         "x": {"field": valor, "type": "quantitative", "scale": {"zero": True, **({"domain": [0, 100]} if porcentaje else {})},
-              "axis": {"title": unidad, **({"labelExpr": "datum.value + '%'"} if porcentaje else {"format": ".0f", "tickMinStep": 1})}},
+              "axis": {"title": unidad, **({"labelExpr": "datum.value + '%'", "values": [0, 25, 50, 75, 100]} if porcentaje else {"format": ".0f", "tickMinStep": 1, "tickCount": 5})}},
         "tooltip": tooltip or [{"field": categoria, "type": "nominal"}, {"field": valor, "type": "quantitative", "format": ".1f" if porcentaje else ".0f"}],
     }
     if colores:
@@ -27,8 +27,9 @@ def barras(datos, categoria, valor, unidad, *, colores=None, orden=None, porcent
 
 
 def condiciones_academicas(condiciones, materia, base):
-    datos = condiciones.assign(
-        Porcentaje=condiciones["Porcentaje (%)"].map(lambda x: formato_numero(x) + " %" if x == x else "Sin datos"),
+    presentes = condiciones.loc[condiciones["Alumnos"].gt(0)]
+    datos = presentes.assign(
+        Porcentaje=presentes["Porcentaje (%)"].map(lambda x: formato_numero(x) + " %" if x == x else "Sin datos"),
         Denominador=base,
     )
     barras(datos, "Condición académica", "Alumnos", "Estudiantes", colores=COLORES_CONDICION,
@@ -47,6 +48,35 @@ def serie_eventos(datos, fecha="Día", valor="Registros"):
         "y": {"field": valor, "type": "quantitative", "scale": {"zero": True}, "axis": {"title": "Eventos", "format": ".0f", "tickMinStep": 1}},
         "tooltip": [{"field": fecha, "type": "temporal", "format": "%d/%m/%Y"}, {"field": valor, "type": "quantitative", "format": ".0f"}],
     }}, altura=280, descripcion="Eventos registrados por fecha en la selección.")
+
+
+def cruce_categorias(grupos, eje, serie, colores, base, orden=None):
+    datos = grupos.assign(Denominador=base)
+    categorias = [c for c in colores if c in datos[serie].values]
+    datos["Orden"] = datos[serie].map({c: i for i, c in enumerate(colores)})
+    datos["Porcentaje visible"] = datos["Estudiantes"].map(lambda n: formato_numero(100 * n / base) + " %" if base else "Sin datos")
+    graficar(datos, {"mark": {"type": "bar", "size": 30}, "encoding": {
+        "y": {"field": eje, "type": "nominal", "sort": orden, "axis": {"title": None, "labelLimit": 230}},
+        "x": {"field": "Estudiantes", "type": "quantitative", "stack": "zero", "scale": {"zero": True},
+              "axis": {"title": "Estudiantes", "format": ".0f", "tickMinStep": 1, "tickCount": 5}},
+        "color": {"field": serie, "type": "nominal", "scale": {"domain": categorias, "range": [colores[c] for c in categorias]},
+                  "legend": {"columns": 1}},
+        "order": {"field": "Orden", "type": "quantitative"},
+        "tooltip": [{"field": eje, "type": "nominal"}, {"field": serie, "type": "nominal"},
+                    {"field": "Estudiantes", "type": "quantitative", "format": ".0f"},
+                    {"field": "Porcentaje visible", "type": "nominal", "title": "% de la población seleccionada"},
+                    {"field": "Denominador", "type": "quantitative", "format": ".0f"}],
+    }}, altura=max(250, 46 * datos[eje].nunique() + 140), descripcion="Cruce de categorías en la población seleccionada.")
+
+
+def dispersion(pares, variable, resultado, materia):
+    graficar(pares, {"mark": {"type": "circle", "color": ACENTO, "size": 65, "opacity": .5}, "encoding": {
+        "x": {"field": variable, "type": "quantitative", "scale": {"zero": True}, "axis": {"title": variable, "tickCount": 5}},
+        "y": {"field": resultado, "type": "quantitative", "scale": {"domain": [0, 100]},
+              "axis": {"title": "Rendimiento sobre notas informadas (%)" if materia == "Álgebra" else "Promedio observado / 100"}},
+        "tooltip": [{"field": variable, "type": "quantitative", "format": ".2f"},
+                    {"field": resultado, "type": "quantitative", "format": ".2f"}],
+    }}, altura=340, descripcion="Relación entre actividad y rendimiento observado; cada punto es un par completo.")
 
 
 def porcentajes_por_materia(datos, colores, orden):

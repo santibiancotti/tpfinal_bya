@@ -7,7 +7,8 @@ from html import escape
 from estilos import (mostrar_encabezado, nombre_materia, formato_numero,
                      COLORES_CONDICION, NOMBRES_MATERIAS, indicadores, tarjeta_resultado, graficar)
 from graficos import (porcentajes_por_materia, distribucion_resultados, tendencia_accesos,
-                      barras, condiciones_academicas, serie_eventos, COLORES_ACTIVIDAD)
+                      barras, condiciones_academicas, serie_eventos, COLORES_ACTIVIDAD,
+                      cruce_categorias, dispersion)
 
 from procesamiento import (FILTROS_POBLACION, seleccionar_poblacion, filtrar_situaciones, resumir_actividad, 
                            filtrar_trazabilidad, DIAS_SEMANA, resumir_horarios, resumir_accesos_diarios, resumir_participacion, resumir_instrumentos,
@@ -108,159 +109,68 @@ def mostrar_inicio(paginas):
                                  icon=":material/arrow_forward:", icon_position="right"):
                         st.switch_page(paginas[clave])
 
-def mostrar_matricula(
-    matriculados,
-    matricula_actual,
-    base_alumnos,
-):
-    poblacion = st.radio(
-        "Población a consultar",
-        options=list(FILTROS_POBLACION),
-        horizontal=True,
-        key="matricula_poblacion",
-    )
+def mostrar_matricula(matriculados, matricula_actual, base_alumnos):
+    with st.container(key="panel_matricula_filtros"):
+        poblacion = st.radio("Población a consultar", list(FILTROS_POBLACION), horizontal=True, key="matricula_poblacion")
+        seleccion = seleccionar_poblacion(base_alumnos, poblacion)
+        filtros = {}
+        for contenedor, campo in zip(st.columns(3), ["Situación de matrícula", "Situación de actividad", "Alerta"]):
+            filtros[campo] = contenedor.selectbox(campo, ["Todas"] + sorted(seleccion[campo].dropna().unique().tolist()),
+                                                 key=f"matricula_filtro_{campo}")
+    seleccion = filtrar_situaciones(seleccion, filtros)
+    cantidad = len(seleccion)
+    alertas = int(seleccion["Tiene alerta"].sum())
+    con_actividad = int(seleccion["Con actividad"].eq(True).sum())
+    sin_actividad = int(seleccion["Con actividad"].eq(False).sum())
+    sin_dato = int(seleccion["Con actividad"].isna().sum())
+    indicadores([
+        ("Estudiantes seleccionados", cantidad, "Población y filtros actuales; una fila por estudiante."),
+        ("Con matrícula vigente", int(seleccion["Matrícula vigente"].sum())),
+        ("Con actividad registrada", con_actividad, "Una o más interacciones durante el período del reporte."),
+        ("Sin actividad registrada", sin_actividad, "Cero interacciones informadas. No incluye los datos faltantes."),
+    ], "matricula")
+    if not cantidad:
+        st.info("No hay estudiantes para esta selección.")
+    if alertas:
+        st.warning(f"{alertas} estudiantes con alertas en la selección.")
+    if sin_dato:
+        st.info(f"{sin_dato} estudiantes sin dato de actividad; no se cuentan como inactivos.")
+    with st.container(key="panel_matricula_comparacion"):
+        st.subheader("Matrícula y actividad")
+        grupos = seleccion.groupby(["Situación de matrícula", "Situación de actividad"], as_index=False).agg(Estudiantes=("Identificación", "size"))
+        colores = {"Con actividad registrada": "#285B8F", "Sin actividad registrada": "#DCE5EF",
+                   "Actividad sin determinar": "#A59AB5", "Sin registro en participación": "#7D8FA3"}
+        if cantidad:
+            cruce_categorias(grupos, "Situación de matrícula", "Situación de actividad", colores, cantidad,
+                             orden=["Vigente", "Baja", "Sin registro en matrícula", "Estado sin informar"])
+        st.caption("Actividad del período completo; puede ser anterior a una baja.")
+    with st.container(key="panel_matricula_casos"):
+        st.subheader("Casos de la selección")
+        st.dataframe(seleccion[["Estudiante", "Identificación", "Alerta"]], hide_index=True, width="stretch", height=310,
+                     column_config={"Estudiante": st.column_config.TextColumn(width=170),
+                                    "Identificación": st.column_config.TextColumn("ID", width=130),
+                                    "Alerta": st.column_config.TextColumn(width=350)})
+        secundarias = st.expander("Ver situaciones e interacciones", key="matricula_columnas", on_change="rerun")
+        if secundarias.open:
+            with secundarias:
+                st.dataframe(seleccion[["Identificación", "Estudiante", "Situación de matrícula", "Situación de actividad",
+                                         "Alerta", "Interacciones", "Última interacción"]], hide_index=True,
+                    column_config={"Última interacción": st.column_config.DatetimeColumn(format="DD/MM/YYYY HH:mm")})
+    historial = st.expander("Ver historial de matrícula", key="matricula_historial", on_change="rerun")
+    if historial.open:
+        with historial:
+            st.caption(f"{len(matriculados)} registros originales; {len(matricula_actual)} estudiantes tras consolidar.")
+            st.dataframe(matriculados, hide_index=True, height=350)
+    metodo = st.expander("Criterios de matrícula y alertas", key="matricula_criterios", on_change="rerun")
+    if metodo.open:
+        with metodo:
+            st.write("Matrícula vigente: último movimiento por fecha de inscripción y transacción con estado Aceptada. "
+                     "Sin registro en matrícula no significa baja. La actividad procede del reporte completo; una ausencia de dato no es cero. "
+                     "Los indicadores, el gráfico y la lista respetan la población y los tres filtros seleccionados.")
+            st.write("Alertas: vigente sin actividad, sin registro en participación o con actividad sin determinar; "
+                     "actividad sin registro en matrícula, con baja registrada o con otro estado de matrícula. "
+                     "Las alertas describen cruces entre fuentes; no determinan una nueva condición académica.")
 
-    alumnos_seleccionados = seleccionar_poblacion(
-        base_alumnos,
-        poblacion,
-    )
-
-    campos_filtro = [
-        "Situación de matrícula",
-        "Situación de actividad",
-        "Alerta",
-    ]
-
-    filtros = {}
-
-    for contenedor, columna in zip(
-        st.columns(3),
-        campos_filtro,
-    ):
-        opciones = ["Todas"] + sorted(
-            alumnos_seleccionados[columna]
-            .dropna()
-            .unique()
-            .tolist()
-        )
-
-        with contenedor:
-            filtros[columna] = st.selectbox(
-                columna,
-                options=opciones,
-                key=f"matricula_filtro_{columna}",
-            )
-
-    alumnos_seleccionados = filtrar_situaciones(
-        alumnos_seleccionados,
-        filtros,
-    )
-
-    cantidad = len(alumnos_seleccionados)
-
-    cantidad_alertas = int(alumnos_seleccionados["Tiene alerta"].sum())
-
-    vigentes = int(
-        alumnos_seleccionados["Matrícula vigente"].sum()
-    )
-
-    con_actividad = int(
-        alumnos_seleccionados["Con actividad"]
-        .eq(True)
-        .sum()
-    )
-
-    sin_actividad = int(
-        alumnos_seleccionados["Con actividad"]
-        .eq(False)
-        .sum()
-    )
-
-    sin_dato_actividad = int(
-        alumnos_seleccionados["Con actividad"]
-        .isna()
-        .sum()
-    )
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric(
-        "Estudiantes seleccionados",
-        cantidad,
-    )
-
-    col2.metric(
-        "Con matrícula vigente",
-        vigentes,
-    )
-
-    col3.metric(
-        "Con actividad registrada",
-        con_actividad,
-    )
-
-    col4.metric(
-        "Sin actividad registrada",
-        sin_actividad,
-    )
-
-    st.caption(
-        f"Población seleccionada: {poblacion}. "
-        "Los indicadores y la tabla corresponden "
-        "a esa población. Con actividad significa "
-        "al menos una interacción en el período del reporte."
-    )
-
-    if cantidad == 0:
-        st.info(
-            "No hay estudiantes que coincidan "
-            "con la combinación de filtros."
-        )
-    elif cantidad_alertas:
-        st.warning(
-            f"{cantidad_alertas} estudiantes requieren "
-            "revisión según los criterios de alerta "
-            "y los filtros seleccionados."
-        )
-
-        st.caption(
-            "La actividad corresponde al período completo "
-            "del reporte y puede ser anterior a una baja."
-        )
-
-    if sin_dato_actividad:
-        st.info(
-            f"Hay {sin_dato_actividad} estudiantes cuya "
-            "actividad no se puede determinar. "
-            "Consultá su situación en la tabla."
-        )
-
-    columnas = [
-        "Identificación",
-        "Estudiante",
-        "Situación de matrícula",
-        "Situación de actividad",
-        "Alerta",
-        "Interacciones",
-        "Última interacción",
-    ]
-
-    st.dataframe(
-        alumnos_seleccionados[columnas],
-        hide_index=True,
-    )
-
-    with st.expander("Ver historial de matrícula"):
-        st.caption(
-            f"{len(matriculados)} registros originales; "
-            f"{len(matricula_actual)} estudiantes únicos "
-            "después de consolidar el historial."
-        )
-
-        st.dataframe(
-            matriculados,
-            hide_index=True,
-        )
 
 def mostrar_resumen_participacion(participacion, participacion_alumnos):
     resumen = resumir_participacion(participacion_alumnos)
@@ -568,85 +478,63 @@ def mostrar_trazabilidad(resumen_eventos, cargar_detalle, cargar_original):
 
 
 def mostrar_rendimiento(calificaciones, materia, resultados=None):
-    pestana_comparacion, pestana_distribucion = st.tabs(
-        ["Comparación por instrumento", "Distribución de resultados"]
-    )
+    try:
+        if resultados is None:
+            resultados = resumir_resultados_alumnos(calificaciones, materia)
+    except ValueError as error:
+        st.info(str(error))
+        return
+    observados = resultados["Resultado observado"].dropna()
+    media = observados.mean() if not observados.empty else None
+    indicadores([
+        ("Alumnos con resultado observado", len(observados), "Estudiantes con al menos una nota informada."),
+        ("Resultado medio", formato_numero(media, 2) + (" pts" if materia == "Álgebra" else " / 100") if media is not None else "Sin datos",
+         "Media de puntos acumulados parciales de un esquema de 120." if materia == "Álgebra" else "Promedio de notas informadas sobre 100."),
+        ("Instrumentos disponibles", calificaciones["Instrumento"].nunique()),
+    ], "rendimiento")
+    if materia == "Álgebra":
+        st.caption("Álgebra · puntos acumulados parciales / esquema de 120 · condición proyectada.")
+    comparacion, distribucion = st.tabs(["Comparación por instrumento", "Distribución de resultados"],
+        key=f"rendimiento_pestanas_{materia}", on_change="rerun")
+    if comparacion.open:
+        with comparacion, st.container(key="panel_rendimiento_instrumentos"):
+            st.subheader("Rendimiento medio por instrumento")
+            resumen = resumir_instrumentos(calificaciones)
+            barras(resumen.dropna(subset=["Promedio (%)"]), "Instrumento", "Promedio (%)", "Promedio obtenido (%)", porcentaje=True,
+                tooltip=[{"field": "Instrumento", "type": "nominal"},
+                         {"field": "Promedio (%)", "type": "quantitative", "format": ".2f"},
+                         {"field": "Notas informadas", "type": "quantitative", "format": ".0f"}])
+            valores = st.expander("Ver valores por instrumento", key="rendimiento_instrumentos_valores", on_change="rerun")
+            if valores.open:
+                with valores:
+                    st.dataframe(resumen.round({"Promedio (%)": 2}), hide_index=True)
+    if distribucion.open:
+        with distribucion, st.container(key="graficos_rendimiento"):
+            histograma, condicion = st.columns(2, gap="medium")
+            with histograma, st.container(key="panel_rendimiento_histograma"):
+                st.subheader("Distribución de resultados")
+                hist = resumir_distribucion_resultados(resultados)
+                distribucion_resultados(hist, materia)
+            with condicion, st.container(key="panel_rendimiento_condicion"):
+                st.subheader("Condición proyectada" if materia == "Álgebra" else "Condición académica")
+                condiciones = resumir_condiciones(resultados)
+                condiciones_academicas(condiciones, materia, len(resultados))
+                st.caption(f"Base: {len(resultados)} estudiantes presentes en calificaciones.")
+            valores = st.expander("Ver valores de resultados y condiciones", key="rendimiento_resultados_valores", on_change="rerun")
+            if valores.open:
+                with valores:
+                    st.dataframe(hist, hide_index=True)
+                    st.markdown(f"**{etiqueta_condicion(materia)}**")
+                    st.dataframe(condiciones.round(2), hide_index=True)
+    metodo = st.expander("Criterios de rendimiento", key="rendimiento_criterios", on_change="rerun")
+    if metodo.open:
+        with metodo:
+            st.write("Los promedios por instrumento usan porcentajes y solo notas informadas. Cada estudiante aporta un resultado "
+                     "a la distribución. Los intervalos incluyen su límite superior; el primero incluye el cero. "
+                     f"Las condiciones usan {len(resultados)} estudiantes presentes en los archivos de calificaciones. "
+                     "Las notas faltantes no se convierten en cero.")
+            mostrar_criterio_academico(materia)
 
-    with pestana_comparacion:
-        resumen = resumir_instrumentos(calificaciones)
-        promedios = resumen.dropna(subset=["Promedio (%)"])
-
-        if not promedios.empty:
-            st.bar_chart(
-                promedios,
-                x="Instrumento",
-                y="Promedio (%)",
-                horizontal=True,
-                sort="-Promedio (%)",
-                height=320,
-            )
-
-        st.caption(
-            "Cada promedio usa los porcentajes obtenidos en ese "
-            "instrumento. La tabla indica cuántas notas informadas "
-            "entran en el cálculo."
-        )
-
-        st.dataframe(
-            resumen.round({"Promedio (%)": 2}),
-            hide_index=True,
-        )
-
-    with pestana_distribucion:
-        try:
-            if resultados is None:
-                resultados = resumir_resultados_alumnos(calificaciones, materia)
-        except ValueError as error:
-            st.info(str(error))
-            return
-
-        distribucion = resumir_distribucion_resultados(resultados)
-
-        if distribucion.empty:
-            st.info("La materia no tiene resultados observados.")
-            return
-
-        st.metric(
-            "Alumnos con resultado observado",
-            int(distribucion["Alumnos"].sum()),
-        )
-
-        st.bar_chart(
-            distribucion,
-            x="Intervalo",
-            y="Alumnos",
-            sort=False,
-            height=320,
-        )
-
-        st.caption(
-            "Cada alumno aporta un resultado calculado con sus notas "
-            "informadas. En Álgebra se suman puntos. En Algoritmos y "
-            "Probabilidad se usa el promedio. Los intervalos incluyen "
-            "el límite superior y el primero también incluye el cero."
-        )
-
-        st.dataframe(distribucion, hide_index=True)
-
-        etiqueta = etiqueta_condicion(materia, "Condición según notas informadas")
-        st.subheader(etiqueta)
-        condiciones = resumir_condiciones(resultados)
-        condiciones = condiciones.rename(columns={"Condición académica": etiqueta_condicion(materia)})
-        if materia == "Álgebra":
-            condiciones = condiciones.rename(columns={"Porcentaje (%)": "Porcentaje por condición proyectada (%)"})
-        st.bar_chart(condiciones, x=etiqueta_condicion(materia), y="Alumnos", sort=False)
-        st.dataframe(condiciones.round(2), hide_index=True)
-        st.caption(
-            f"Denominador: {len(resultados)} estudiantes presentes en calificaciones. "
-            "No incluye alumnos del aula sin filas en esos archivos. "
-            "Las notas faltantes no se convierten en cero."
-        )
-        mostrar_criterio_academico(materia)
 
 def etiqueta_condicion(materia, habitual="Condición académica"):
     if materia == "Álgebra":
@@ -675,173 +563,87 @@ def mostrar_semaforo(condicion, materia):
 
 def mostrar_individual(base_alumnos, calificaciones, materia, cargar_historial, resultados=None):
     alumnos_por_id = base_alumnos.set_index("Identificación")
-
-    nombres_notas = (
-        calificaciones
-        .drop_duplicates(subset="Usuario")
-        .set_index("Usuario")
-    )
-    nombres_notas = (
-        nombres_notas["Apellido"] + ", " + nombres_notas["Nombre"]
-    )
-
-    nombres = (
-        alumnos_por_id["Estudiante"]
-        .combine_first(nombres_notas)
-        .fillna("Nombre no informado")
-        .sort_index()
-    )
-
-    usuario = st.selectbox(
-        "Estudiante",
-        options=nombres.index.tolist(),
-        index=None,
-        placeholder="Seleccioná un estudiante",
-        format_func=lambda valor: f"{valor} - {nombres.loc[valor]}",
-        key=f"individual_estudiante_{materia}",
-    )
-
+    nombres_notas = calificaciones.drop_duplicates(subset="Usuario").set_index("Usuario")
+    nombres_notas = nombres_notas["Apellido"] + ", " + nombres_notas["Nombre"]
+    nombres = alumnos_por_id["Estudiante"].combine_first(nombres_notas).fillna("Nombre no informado").sort_index()
+    usuario = st.selectbox("Estudiante", nombres.index.tolist(), index=None, placeholder="Seleccioná un estudiante",
+                          format_func=lambda valor: f"{valor} - {nombres.loc[valor]}", key=f"individual_estudiante_{materia}")
     if usuario is None:
+        st.info("Seleccioná un estudiante para consultar su situación.")
         return
-
-    st.subheader(nombres.loc[usuario])
-
-    pestana_resumen, pestana_notas, pestana_actividad = st.tabs(
-        ["Matrícula y participación", "Notas", "Historial de actividad"],
-        key=f"individual_pestanas_{materia}",
-        on_change="rerun",
-    )
-
-    with pestana_resumen:
-        if usuario in alumnos_por_id.index:
-            alumno = alumnos_por_id.loc[usuario]
-
-            st.write(f"**Matrícula** · {alumno['Situación de matrícula']}")
-            st.write(f"**Actividad** · {alumno['Situación de actividad']}")
-
-            interacciones = alumno["Interacciones"]
-            tiempo = alumno["Tiempo de uso (minutos)"]
-
-            col1, col2 = st.columns(2)
-            col1.metric(
-                "Interacciones",
-                int(interacciones) if pd.notna(interacciones) else None,
-            )
-            col2.metric(
-                "Tiempo estimado",
-                f"{tiempo:.0f} min" if pd.notna(tiempo) else None,
-            )
-        else:
-            st.info("Este estudiante figura en los archivos de calificaciones.")
-
-    if pestana_actividad.open:
-        with pestana_actividad:
+    if resultados is None:
+        resultados = resumir_resultados_alumnos(calificaciones, materia)
+    coincidencias = resultados.loc[resultados["Usuario"].eq(usuario)]
+    fila = coincidencias.iloc[0] if not coincidencias.empty else None
+    alumno = alumnos_por_id.loc[usuario] if usuario in alumnos_por_id.index else None
+    condicion = fila["Condición académica"] if fila is not None else "Sin notas informadas"
+    valor = fila["Resultado observado"] if fila is not None else None
+    maximo = fila.get("Máximo de sus notas", 100) if fila is not None else None
+    estado = alumno["Situación de matrícula"] if alumno is not None else "Sin registro en matrícula"
+    actividad = alumno["Situación de actividad"] if alumno is not None else "Sin registro en participación"
+    with st.container(key="panel_individual_identidad"):
+        st.html(f'<div class="perfil-nombre">{escape(nombres.loc[usuario])}</div>'
+                f'<div class="perfil-contexto">{escape(usuario)} · {escape(estado)} · {escape(actividad)}</div>')
+        mostrar_semaforo(condicion, materia)
+    resultado_visible = (formato_numero(valor, 2) + " / " + formato_numero(maximo, 0) + (" pts" if materia == "Álgebra" else "")) if pd.notna(valor) else "Sin datos"
+    interacciones = alumno["Interacciones"] if alumno is not None else None
+    indicadores([
+        ("Resultado observado", resultado_visible, "Puntos obtenidos sobre el máximo de las evaluaciones con nota." if materia == "Álgebra" else "Promedio sobre 100; incluye el recuperatorio informado en Probabilidad."),
+        ("Instrumentos con nota", f"{int(fila['Instrumentos con nota'])} de {int(fila['Instrumentos disponibles'])}" if fila is not None else "Sin notas"),
+        ("Interacciones", int(interacciones) if pd.notna(interacciones) else "Sin datos"),
+    ], "individual")
+    resumen, notas_tab, historial = st.tabs(["Matrícula y participación", "Notas", "Historial de actividad"],
+        key=f"individual_pestanas_{materia}", on_change="rerun")
+    if resumen.open:
+        with resumen, st.container(key="panel_individual_resultado"):
+            st.subheader("Resultado y participación")
+            if pd.notna(valor):
+                porcentaje = fila["Rendimiento observado (%)"] if materia == "Álgebra" else valor
+                st.progress(float(porcentaje) / 100, text=("Rendimiento sobre notas informadas" if materia == "Álgebra" else "Promedio observado") + f" · {formato_numero(porcentaje, 1)} %")
+                if materia == "Álgebra":
+                    st.caption(f"Las notas informadas cubren {formato_numero(maximo, 0)} de los 120 puntos del esquema. Condición proyectada.")
+            tiempo = alumno["Tiempo de uso (minutos)"] if alumno is not None else None
+            st.caption("Tiempo estimado: " + (formato_numero(tiempo, 0) + " min" if pd.notna(tiempo) else "sin datos") + ". Actividad del período completo del reporte.")
+    if notas_tab.open:
+        with notas_tab, st.container(key="panel_individual_notas"):
+            st.subheader("Resultados por instrumento")
+            notas = calificaciones.loc[calificaciones["Usuario"].eq(usuario)]
+            barras(notas.dropna(subset=["Porcentaje obtenido"]), "Instrumento", "Porcentaje obtenido", "Porcentaje obtenido (%)", porcentaje=True,
+                tooltip=[{"field": "Instrumento", "type": "nominal"}, {"field": "Nota", "type": "nominal"},
+                         {"field": "Porcentaje obtenido", "type": "quantitative", "format": ".2f"}])
+            st.caption("Porcentajes por instrumento; una evaluación sin nota no equivale a cero.")
+            detalle = st.expander("Ver notas y observaciones", key="individual_notas_detalle", on_change="rerun")
+            if detalle.open:
+                with detalle:
+                    st.dataframe(notas[["Instrumento", "Nota", "Puntos obtenidos", "Puntos máximos", "Porcentaje obtenido", "Observaciones"]].round({"Porcentaje obtenido": 2}), hide_index=True)
+    if historial.open:
+        with historial:
             try:
                 with st.spinner("Cargando historial de actividad..."):
                     eventos = cargar_historial(usuario)
             except (FileNotFoundError, ValueError) as error:
                 st.error(str(error))
                 return
-
             if eventos.empty:
                 st.info("Sin registros de trazabilidad para este estudiante.")
             else:
-                col1, col2 = st.columns(2)
-
-                col1.metric("Registros de trazabilidad", len(eventos))
-                col2.metric(
-                    "Accesos a secciones",
-                    int(eventos["Acción"].eq("Acceder").sum()),
-                )
-
-                st.caption(
-                    "Los recuentos corresponden al reporte de trazabilidad "
-                    "e incluyen las repeticiones marcadas."
-                )
-
-                columnas_eventos = [
-                    "Fecha",
-                    "Sección",
-                    "Acción",
-                    "Descripción",
-                    "Repetición exacta adicional",
-                ]
-
-                st.dataframe(
-                    eventos[columnas_eventos].sort_values(
-                        "Fecha",
-                        ascending=False,
-                    ),
-                    hide_index=True,
-                )
-
-    if not pestana_notas.open:
-        return
-
-    with pestana_notas:
-        notas = calificaciones.loc[
-            calificaciones["Usuario"].eq(usuario)
-        ]
-
-        if notas.empty:
-            mostrar_semaforo("Sin notas informadas", materia)
-            return
-
-        try:
-            if resultados is None:
-                resultados = resumir_resultados_alumnos(calificaciones, materia)
-        except ValueError as error:
-            st.info(str(error))
-        else:
-            fila = resultados.set_index("Usuario").loc[usuario]
-            valor = fila["Resultado observado"]
-            maximo = fila.get("Máximo de sus notas", 100)
-
-            mostrar_semaforo(fila["Condición académica"], materia)
-
-            if materia == "Álgebra" and pd.notna(valor):
-                porcentaje = fila["Rendimiento observado (%)"]
-                porcentaje_visible = f"{porcentaje:.2f}".replace(".", ",")
-
-                st.caption(
-                    f"Rendimiento sobre notas informadas {porcentaje_visible} %. "
-                    f"Las evaluaciones con nota cubren {maximo:.0f} "
-                    "de los 120 puntos del esquema."
-                )
-                mostrar_criterio_academico(materia)
-
-            elif materia == "Probabilidad y Estadística":
-                st.caption(
-                    "El promedio incluye el recuperatorio cuando "
-                    "hay una nota informada."
-                )
-
-            col1, col2 = st.columns(2)
-            col1.metric(
-                "Resultado observado",
-                f"{valor:.2f} / {maximo:.0f}".replace(".", ",")
-                if pd.notna(valor)
-                else None,
-            )
-            col2.metric(
-                "Instrumentos con nota",
-                f"{fila['Instrumentos con nota']} "
-                f"de {fila['Instrumentos disponibles']}",
-            )
-
-        columnas = [
-            "Instrumento",
-            "Nota",
-            "Puntos obtenidos",
-            "Puntos máximos",
-            "Porcentaje obtenido",
-            "Observaciones",
-        ]
-
-        st.dataframe(
-            notas[columnas].round({"Porcentaje obtenido": 2}),
-            hide_index=True,
-        )
+                indicadores([("Registros de trazabilidad", len(eventos)), ("Accesos a secciones", int(eventos["Acción"].eq("Acceder").sum()))], "individual_historial")
+                with st.container(key="panel_individual_historial"):
+                    st.subheader("Actividad diaria del estudiante")
+                    diarios = eventos.groupby(eventos["Fecha"].dt.normalize()).size().rename_axis("Día").reset_index(name="Registros")
+                    serie_eventos(diarios)
+                    st.caption("Eventos del reporte de trazabilidad; repeticiones incluidas.")
+                    detalle = st.expander("Ver eventos del estudiante", key="individual_historial_detalle", on_change="rerun")
+                    if detalle.open:
+                        with detalle:
+                            st.dataframe(eventos[["Fecha", "Sección", "Acción", "Descripción", "Repetición exacta adicional"]].sort_values("Fecha", ascending=False),
+                                hide_index=True, column_config={"Fecha": st.column_config.DatetimeColumn(format="DD/MM/YYYY HH:mm")})
+    metodo = st.expander("Criterios del resultado individual", key="individual_criterios", on_change="rerun")
+    if metodo.open:
+        with metodo:
+            mostrar_criterio_academico(materia)
+            st.write("Las notas faltantes no se convierten en cero. Matrícula muestra el último estado disponible; "
+                     "participación corresponde al período completo y el tiempo es estimado.")
 
 
 def mostrar_criterio_academico(materia):
@@ -930,21 +732,21 @@ def mostrar_general(resumen, alumnos, resultados, cargar_tendencias):
                 key="general_tablas_pestanas", on_change="rerun")
             datos = vista.assign(Asignatura=vista["Materia"].map(nombre_materia))
             if actividad_tabla.open:
-              with actividad_tabla:
-                datos["Cobertura"] = datos["Activos (%)"].map(
-                    lambda v: formato_numero(v) + " %" if pd.notna(v) else "Sin datos")
-                st.dataframe(datos[["Asignatura", "Alumnos del aula", "Con dato de actividad", "Activos", "Inactivos", "Cobertura"]],
-                             hide_index=True, width="stretch", column_config={
-                    "Alumnos del aula": st.column_config.NumberColumn("Alumnos", format="%d"),
-                    "Con dato de actividad": st.column_config.NumberColumn("Con dato", format="%d"),
-                })
+                with actividad_tabla:
+                    datos["Cobertura"] = datos["Activos (%)"].map(
+                        lambda v: formato_numero(v) + " %" if pd.notna(v) else "Sin datos")
+                    st.dataframe(datos[["Asignatura", "Alumnos del aula", "Con dato de actividad", "Activos", "Inactivos", "Cobertura"]],
+                                 hide_index=True, width="stretch", column_config={
+                        "Alumnos del aula": st.column_config.NumberColumn("Alumnos", format="%d"),
+                        "Con dato de actividad": st.column_config.NumberColumn("Con dato", format="%d"),
+                    })
             if fuentes.open:
-              with fuentes:
-                st.dataframe(datos[["Asignatura", "Usuarios del reporte", "Desde", "Hasta"]], hide_index=True, width="stretch", column_config={
-                    "Usuarios del reporte": st.column_config.NumberColumn("Usuarios del reporte", format="%d"),
-                    "Desde": st.column_config.DateColumn(format="DD/MM/YYYY"),
-                    "Hasta": st.column_config.DateColumn(format="DD/MM/YYYY"),
-                })
+                with fuentes:
+                    st.dataframe(datos[["Asignatura", "Usuarios del reporte", "Desde", "Hasta"]], hide_index=True, width="stretch", column_config={
+                        "Usuarios del reporte": st.column_config.NumberColumn("Usuarios del reporte", format="%d"),
+                        "Desde": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                        "Hasta": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                    })
             if resultados_tabla.open:
                 with resultados_tabla:
                     st.dataframe(datos[["Asignatura", "Resultado promedio", "Con resultado observado"]], hide_index=True,
@@ -956,7 +758,7 @@ def mostrar_general(resumen, alumnos, resultados, cargar_tendencias):
         with criterios:
             st.write("Los estudiantes únicos se deduplican por identificador entre materias. Los registros alumno-materia cuentan una fila por estudiante en cada aula, con independencia de su situación de matrícula.")
             st.write("Actividad: al menos una interacción durante el período del reporte. Los porcentajes usan alumnos del aula con dato de actividad. Los valores faltantes no se consideran inactivos.")
-            st.write("Las condiciones usan estudiantes presentes en los archivos de calificaciones. El promedio usa solo resultados observados. Las notas faltantes no se convierten en cero.")
+            st.write("Las condiciones usan estudiantes presentes en los archivos de calificaciones. El promedio usa solo resultados observados. Las notas faltantes no se convierten en cero. Los intervalos de los histogramas incluyen su límite superior; el primero incluye el cero.")
             for materia in materias:
                 st.markdown(f"**{materia}**")
                 mostrar_criterio_academico(materia)
@@ -993,11 +795,6 @@ def mostrar_relacion(datos, materia, cargar_indicadores=None):
     poblacion = st.radio("Población a consultar", list(FILTROS_POBLACION),
                          index=1, horizontal=True, key=f"relacion_poblacion_{materia}")
     seleccion = seleccionar_poblacion(datos, poblacion)
-    st.caption(
-        f"Población: {poblacion}, {len(seleccion)} registros estudiante-materia. "
-        "Participación del período completo del reporte y notas disponibles al exportar. "
-        "Cada estudiante aporta como máximo una observación a cada cruce."
-    )
     if seleccion.empty:
         st.info("No hay estudiantes en esta población.")
         return
@@ -1016,42 +813,41 @@ def mostrar_relacion(datos, materia, cargar_indicadores=None):
                     st.warning("Los períodos de participación y trazabilidad difieren. No se cruzan sus recuentos.")
                 else:
                     seleccion = agregar_actividad_trazabilidad(seleccion, resumen)
-                    st.caption("Indicadores de trazabilidad incorporados a la selección del gráfico.")
+                    st.caption("Indicadores disponibles en el selector.")
     variables = ["Interacciones", "Tiempo de uso (minutos)"]
     if "Registros de trazabilidad" in seleccion:
         variables += ["Registros de trazabilidad", "Días con eventos"]
-    variable = st.selectbox("Indicador de participación o trazabilidad", variables,
-                            key=f"relacion_variable_{materia}")
+    variable = st.selectbox("Indicador de participación o trazabilidad", variables, key=f"relacion_variable_{materia}")
     resultado = "Rendimiento observado (%)" if materia == "Álgebra" else "Resultado observado"
     pares, correlacion, motivo = calcular_correlacion(seleccion, variable, resultado)
-    col1, col2 = st.columns(2)
-    col1.metric("Observaciones emparejadas", len(pares))
-    col2.metric("Correlación de Pearson", f"{correlacion:.3f}" if correlacion is not None else "No calculable")
-    if not pares.empty:
-        st.scatter_chart(pares, x=variable, y=resultado, height=350)
-    if motivo:
-        st.info(motivo)
-    st.caption(
-        f"Se excluyen {len(seleccion) - len(pares)} registros sin ambos valores. "
-        "Tiempo de uso es una estimación en minutos. La correlación describe una asociación "
-        "y no demuestra causalidad. No se estima una calificación final."
-    )
-    if materia == "Álgebra":
-        st.caption("La dispersión usa el porcentaje sobre las notas informadas de cada estudiante, "
-                   "para distinguirlo de la suma de puntos con máximos parciales diferentes.")
-    mostrar_criterio_academico(materia)
-    st.subheader("Patrones de actividad y condición proyectada" if materia == "Álgebra"
-                 else "Patrones de actividad y condición académica")
-    grupos = seleccion.groupby(
-        ["Situación de actividad", "Condición académica"], as_index=False
-    ).agg(Estudiantes=("Identificación", "size"))
-    grupos["Porcentaje de la población (%)"] = 100 * grupos["Estudiantes"] / len(seleccion)
-    grupos = grupos.rename(columns={"Condición académica": etiqueta_condicion(materia)})
-    st.bar_chart(grupos, x=etiqueta_condicion(materia), y="Estudiantes", color="Situación de actividad", stack=False)
-    st.dataframe(grupos.round(2), hide_index=True)
-    st.caption(
-        "Grupos descriptivos definidos por la actividad registrada (>0 interacciones) "
-        f"y la condición {'proyectada' if materia == 'Álgebra' else 'calculada'} con las reglas académicas. Se conservan las categorías "
-        "sin datos. Los porcentajes usan toda la población seleccionada. "
-        "No se asigna una categoría nueva de riesgo. El detalle personal se consulta en Individual."
-    )
+    indicadores([
+        ("Observaciones emparejadas", len(pares), "Pares con ambos valores informados, uno como máximo por estudiante."),
+        ("Correlación de Pearson", formato_numero(correlacion, 3) if correlacion is not None else "No calculable", "De −1 a 1. Describe asociación, no causalidad."),
+        ("Sin par completo", len(seleccion) - len(pares)),
+    ], "relacion")
+    with st.container(key="panel_relacion_dispersion"):
+        st.subheader("Actividad y rendimiento observado")
+        if not pares.empty:
+            dispersion(pares, variable, resultado, materia)
+        if motivo:
+            st.info(motivo)
+        st.caption("Asociación descriptiva; no demuestra causalidad." +
+                   (" Álgebra: porcentaje sobre las notas informadas." if materia == "Álgebra" else ""))
+    with st.container(key="panel_relacion_grupos"):
+        st.subheader("Actividad y condición proyectada" if materia == "Álgebra" else "Actividad y condición académica")
+        grupos = seleccion.groupby(["Situación de actividad", "Condición académica"], as_index=False).agg(Estudiantes=("Identificación", "size"))
+        cruce_categorias(grupos, "Situación de actividad", "Condición académica", COLORES_CONDICION, len(seleccion))
+        st.caption(f"Base: {len(seleccion)} estudiantes de la población seleccionada.")
+        detalle = st.expander("Ver valores de los grupos", key="relacion_grupos_valores", on_change="rerun")
+        if detalle.open:
+            with detalle:
+                tabla = grupos.assign(**{"Porcentaje de la población (%)": 100 * grupos["Estudiantes"] / len(seleccion)})
+                st.dataframe(tabla.rename(columns={"Condición académica": etiqueta_condicion(materia)}).round(2), hide_index=True)
+    metodo = st.expander("Criterios de la comparación", key="relacion_criterios", on_change="rerun")
+    if metodo.open:
+        with metodo:
+            st.write(f"Población: {poblacion}, {len(seleccion)} registros estudiante-materia. Participación del período completo y "
+                     "notas disponibles al exportar. La dispersión excluye registros sin ambos valores; tiempo de uso es una estimación en minutos. "
+                     "Los grupos usan actividad registrada (>0 interacciones) y condición académica, conservan las categorías sin datos y sus porcentajes usan toda "
+                     "la población seleccionada. Son grupos descriptivos, no categorías nuevas de riesgo.")
+            mostrar_criterio_academico(materia)

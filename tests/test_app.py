@@ -6,6 +6,7 @@ from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
 
 import datos
+import procesamiento
 from estilos import nombre_materia
 
 
@@ -142,6 +143,64 @@ class VistasConFuentesReales(unittest.TestCase):
         self.app.run()
         self.comprobar()
         self.assertEqual(sum("En Álgebra, la condición se proyecta" in c.value for c in self.app.caption), 1)
+
+    def test_07_graficos_primero_y_tablas_solo_al_solicitarlas(self):
+        self.abrir("participacion")
+        materia = self.app.selectbox(key="selector_materia").value
+        self.app.session_state[f"participacion_pestanas_{materia}"] = "Resumen del reporte completo"
+        self.app.run()
+        self.comprobar()
+        self.assertFalse(self.app.dataframe)
+        self.assertTrue(self.app.get("vega_lite_chart"))
+        self.app.session_state["participacion_alumnos"] = True
+        self.app.run()
+        self.comprobar()
+        esperados = procesamiento.preparar_participacion(datos.leer_participacion(materia))
+        self.assertEqual(len(self.app.dataframe[0].value), len(esperados))
+
+        self.abrir("rendimiento")
+        self.assertFalse(self.app.dataframe)
+        self.assertTrue(self.app.get("vega_lite_chart"))
+        self.app.session_state["rendimiento_instrumentos_valores"] = True
+        self.app.run()
+        self.comprobar()
+        notas = procesamiento.preparar_calificaciones(datos.leer_calificaciones(materia))
+        self.assertEqual(self.app.dataframe[0].value["Notas informadas"].sum(), notas["Puntos obtenidos"].count())
+
+        self.abrir("relacion")
+        self.app.radio(key=f"relacion_poblacion_{materia}").set_value("Alumnos del aula").run()
+        self.assertFalse(self.app.dataframe)
+        self.assertEqual(len(self.app.get("vega_lite_chart")), 2)
+        self.app.session_state["relacion_grupos_valores"] = True
+        self.app.run()
+        self.comprobar()
+        self.assertEqual(self.app.dataframe[0].value["Estudiantes"].sum(), len(esperados))
+        self.assertAlmostEqual(self.app.dataframe[0].value["Porcentaje de la población (%)"].sum(), 100, places=1)
+
+    def test_08_individual_y_matricula_detalle_opcional(self):
+        self.abrir("individual")
+        materia = self.app.selectbox(key="selector_materia").value
+        self.app.selectbox(key=f"individual_estudiante_{materia}").select_index(0).run()
+        self.comprobar()
+        self.assertFalse(self.app.dataframe)
+        self.assertTrue(any("border-radius: 50%" in h.proto.body for h in self.app.get("html")))
+        self.app.session_state[f"individual_pestanas_{materia}"] = "Notas"
+        self.app.run()
+        self.comprobar()
+        self.assertFalse(self.app.dataframe)
+        self.app.session_state["individual_notas_detalle"] = True
+        self.app.run()
+        self.comprobar()
+        self.assertEqual(len(self.app.dataframe), 1)
+
+        self.abrir("matricula")
+        self.assertEqual(len(self.app.dataframe), 1)
+        self.assertEqual(self.app.dataframe[0].value.columns.tolist(), ["Estudiante", "Identificación", "Alerta"])
+        self.app.session_state["matricula_historial"] = True
+        self.app.run()
+        self.comprobar()
+        self.assertEqual(len(self.app.dataframe), 2)
+        self.assertEqual(len(self.app.dataframe[1].value), len(datos.leer_matriculados(materia)))
 
 
 if __name__ == "__main__":
