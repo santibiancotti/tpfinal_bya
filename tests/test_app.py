@@ -6,6 +6,7 @@ from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
 
 import datos
+from estilos import nombre_materia
 
 
 @unittest.skipUnless(datos.CARPETA_DATOS.is_dir(), "Requiere las fuentes locales del TFI")
@@ -53,7 +54,7 @@ class VistasConFuentesReales(unittest.TestCase):
         for materia in self.materias:
             self.app.multiselect(key="general_materias").set_value([materia]).run()
             self.comprobar()
-            self.assertEqual(self.app.dataframe[0].value["Materia"].tolist(), [materia])
+            self.assertEqual(self.app.dataframe[0].value["Asignatura"].tolist(), [nombre_materia(materia)])
         self.app.multiselect(key="general_materias").set_value([]).run()
         self.comprobar()
         self.assertTrue(self.app.info)
@@ -109,6 +110,33 @@ class VistasConFuentesReales(unittest.TestCase):
                 self.app.selectbox(key="matricula_filtro_Situación de matrícula").select(situacion).run()
                 self.comprobar()
             self.app.selectbox(key="matricula_filtro_Situación de matrícula").select("Todas").run()
+
+    def test_05_navegacion_compacta_y_regreso_a_inicio(self):
+        for vista in ["general", "participacion", "trazabilidad", "rendimiento", "relacion", "individual", "matricula"]:
+            self.abrir(vista)
+            self.assertFalse(any(b.label == "Abrir vista" for b in self.app.button))
+            self.app.button(key="abrir_inicio").click().run()
+            self.comprobar()
+            self.assertEqual(self.app.button(key="abrir_general").label, "Abrir General")
+            self.assertEqual(sum(b.label == "Abrir vista" for b in self.app.button), 6)
+
+    def test_06_general_detalles_y_proyeccion(self):
+        self.abrir("general")
+        self.assertEqual(len(self.app.dataframe), 1)
+        self.app.session_state["general_distribucion"] = True
+        self.app.run()
+        for materia in self.materias:
+            self.app.selectbox(key="general_distribucion_materia").select(materia).run()
+            self.comprobar()
+            etiqueta = "Condición proyectada según notas informadas" if materia == "Álgebra" else "Condición según notas informadas"
+            self.assertTrue(any(etiqueta in m.value for m in self.app.markdown))
+            detalle = self.app.dataframe[1].value
+            esperados = datos.leer_calificaciones(materia)["Usuario"].astype("string").str.strip().str.upper().nunique()
+            self.assertEqual(detalle["Estudiantes"].sum(), esperados)
+        self.app.session_state["general_criterios"] = True
+        self.app.run()
+        self.comprobar()
+        self.assertEqual(sum("En Álgebra, la condición se proyecta" in c.value for c in self.app.caption), 1)
 
 
 if __name__ == "__main__":

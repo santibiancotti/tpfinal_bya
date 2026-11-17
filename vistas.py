@@ -3,21 +3,16 @@ import streamlit as st
 import pandas as pd
 
 from hashlib import sha256
+from estilos import (mostrar_encabezado, nombre_materia, formato_numero,
+                     COLORES_CONDICION, NOMBRES_MATERIAS)
+from graficos import porcentajes_por_materia, distribucion_resultados, tendencia_accesos
 
 from procesamiento import (FILTROS_POBLACION, seleccionar_poblacion, filtrar_situaciones, resumir_actividad, 
                            filtrar_trazabilidad, DIAS_SEMANA, resumir_horarios, resumir_accesos_diarios, resumir_participacion, resumir_instrumentos,
                            resumir_resultados_alumnos, resumir_distribucion_resultados,
                            resumir_condiciones, calcular_correlacion, agregar_actividad_trazabilidad)
 
-def mostrar_inicio(paginas):
-    st.title("Seguimiento académico")
-
-    st.write(
-        "Seleccioná una vista para consultar "
-        "la información académica."
-    )
-
-    dashboards = [
+DASHBOARDS = [
         (
             "general",
             "General",
@@ -53,30 +48,62 @@ def mostrar_inicio(paginas):
             "Matrícula y alertas",
             "Inscripciones y comparación con la actividad del aula.",
         ),
-    ]
+]
 
-    for inicio in range(0, len(dashboards), 3):
-        columnas = st.columns(3)
 
-        for columna, dashboard in zip(
-            columnas,
-            dashboards[inicio:inicio + 3],
-        ):
-            clave, titulo, descripcion = dashboard
+def mostrar_barra_navegacion(paginas, pagina_actual):
+    with st.container(key="barra_marca"):
+        marca, acciones = st.columns([4, 1.3], vertical_alignment="center")
+        with marca:
+            st.html('<div class="marca"><span class="marca-simbolo" aria-hidden="true">BI</span>'
+                    '<span>SEGUIMIENTO ACADÉMICO</span></div>')
+        with acciones:
+            if st.button("Actualizar fuentes", key="actualizar_fuentes", type="tertiary",
+                         icon=":material/refresh:", width="stretch", wrap=True,
+                         help="Vuelve a leer las fuentes y actualiza los resultados. Las secciones cerradas se cargarán al abrirlas."):
+                st.cache_data.clear()
+                st.rerun()
+    if pagina_actual.url_path == paginas["inicio"].url_path:
+        return
+    with st.container(horizontal=True, wrap=True, key="navegacion", gap="small"):
+        if st.button("Inicio", key="abrir_inicio", type="tertiary", icon=":material/home:"):
+            st.switch_page(paginas["inicio"])
+        for clave, titulo, _ in DASHBOARDS:
+            titulo = {"rendimiento": "Rendimiento", "matricula": "Matrícula y alertas"}.get(clave, titulo)
+            activo = pagina_actual.url_path == paginas[clave].url_path
+            if st.button(titulo, key=f"abrir_{clave}", type="primary" if activo else "tertiary"):
+                st.switch_page(paginas[clave])
 
-            with columna:
-                with st.container(border=True):
+
+def mostrar_inicio(paginas):
+    mostrar_encabezado("Seguimiento académico", "Participación, rendimiento y matrícula en un mismo lugar.",
+                        "TRABAJO FINAL INTEGRADOR · BI & ANALYTICS")
+    with st.container(key="inicio_general"):
+        principal, alcance = st.columns([2.3, 1], gap="large", vertical_alignment="center")
+        with principal:
+            st.html('<div class="eyebrow">VISIÓN CONSOLIDADA</div>')
+            st.subheader("General")
+            st.write("Empezá por el panorama de la cursada. Compará la actividad y los resultados de las asignaturas y explorá su evolución.")
+            if st.button("Abrir General", key="abrir_general", type="primary",
+                         icon=":material/arrow_forward:", icon_position="right"):
+                st.switch_page(paginas["general"])
+        with alcance:
+            st.html('<div class="inicio-puntos"><p>Actividad y cobertura</p>'
+                    '<p>Resultados por asignatura</p><p>Tendencias de participación</p></div>')
+    st.subheader("Explorá cada dimensión")
+    st.caption("Seis vistas para profundizar en los indicadores y consultar trayectorias individuales.")
+    categorias = ["ACTIVIDAD", "INTERACCIONES", "EVALUACIONES", "ANÁLISIS CRUZADO", "ESTUDIANTES", "INSCRIPCIONES"]
+    with st.container(key="inicio_catalogo"):
+        for inicio in range(0, 6, 3):
+            for columna, dashboard, categoria in zip(st.columns(3, gap="medium"),
+                                                     DASHBOARDS[inicio + 1:inicio + 4], categorias[inicio:inicio + 3]):
+                clave, titulo, descripcion = dashboard
+                with columna, st.container(key=f"inicio_tarjeta_{clave}"):
+                    st.html(f'<div class="eyebrow">{categoria}</div>')
                     st.subheader(titulo)
                     st.write(descripcion)
-
-                    disponible = clave in paginas
-
-                    if st.button(
-                        "Abrir vista",
-                        key=f"abrir_{clave}",
-                        disabled=not disponible,
-                        width="stretch",
-                    ):
+                    if st.button("Abrir vista", key=f"abrir_{clave}", width="stretch",
+                                 icon=":material/arrow_forward:", icon_position="right"):
                         st.switch_page(paginas[clave])
 
 def mostrar_matricula(
@@ -701,15 +728,7 @@ def etiqueta_condicion(materia, habitual="Condición académica"):
 
 
 def mostrar_semaforo(condicion, materia):
-    colores = {
-        "Promociona": "#15803D",
-        "Regular": "#EAB308",
-        "Libre": "#DC2626",
-        "Pendiente": "#6B7280",
-        "Sin notas informadas": "#6B7280",
-    }
-
-    color = colores[condicion]
+    color = COLORES_CONDICION[condicion]
 
     st.html(
         f"""
@@ -916,67 +935,140 @@ def mostrar_criterio_academico(materia):
 
 
 def mostrar_general(resumen, alumnos, resultados, cargar_tendencias):
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Asignaturas", len(resumen))
-    col2.metric("Estudiantes únicos en las aulas", alumnos["Usuario"].nunique())
-    col3.metric("Registros alumno-materia en las aulas", len(alumnos))
-    st.caption(
-        "Los estudiantes únicos se deduplican por identificador entre materias. "
-        "Los indicadores por materia y sus sumas cuentan registros alumno-materia."
-    )
-    st.dataframe(resumen.round(2), hide_index=True)
-    actividad = resumen.melt(
-        id_vars="Materia", value_vars=["Activos (%)", "Inactivos (%)"],
-        var_name="Actividad", value_name="Porcentaje (%)",
-    )
-    st.bar_chart(actividad, x="Materia", y="Porcentaje (%)", color="Actividad", stack=False)
-    st.caption(
-        "Activo: al menos una interacción durante el período completo indicado por materia. "
-        "Denominador de ambos porcentajes: alumnos del aula con dato de actividad. "
-        "Los valores faltantes no se consideran inactivos."
-    )
-    st.subheader("Resultados por asignatura")
-    for materia in resumen["Materia"]:
+    materias = [m for m in NOMBRES_MATERIAS if m in resumen["Materia"].values]
+    materias += [m for m in resumen["Materia"] if m not in materias]
+    orden = [nombre_materia(m) for m in materias]
+    with st.container(key="general_kpis"):
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Asignaturas", len(resumen), help="Asignaturas incluidas en la selección actual.")
+        col2.metric("Estudiantes únicos en las aulas", alumnos["Usuario"].nunique(),
+                    help="Identificadores distintos entre las aulas seleccionadas; una persona se cuenta una sola vez.")
+        col3.metric("Registros alumno-materia en las aulas", len(alumnos),
+                    help="Cada estudiante se cuenta una vez por asignatura. Una persona puede participar en más de una.")
+
+    actividad, condiciones = datos_graficos_general(resumen, resultados)
+    with st.container(key="general_comparaciones"):
+        izquierda, derecha = st.columns(2, gap="medium")
+        with izquierda, st.container(key="panel_general_actividad"):
+            st.subheader("Actividad del aula")
+            st.caption("Participación registrada durante el período del reporte.")
+            porcentajes_por_materia(actividad, {"Con actividad": "#285B8F", "Sin actividad": "#DCE5EF"}, orden)
+        with derecha, st.container(key="panel_general_condiciones"):
+            st.subheader("Condición según notas informadas")
+            st.caption("Álgebra: Condición proyectada según notas informadas."
+                       if "Álgebra" in materias else "Distribución sobre estudiantes presentes en calificaciones.")
+            orden_condiciones = [m + " · proyectada" if m == "Álgebra" else m for m in orden]
+            porcentajes_por_materia(condiciones, COLORES_CONDICION, orden_condiciones)
+
+    with st.container(key="panel_general_rendimiento"):
+        st.subheader("Rendimiento observado")
+        st.caption("Álgebra: puntos acumulados parciales de un esquema de 120 puntos. Las otras materias usan promedios sobre 100.")
+        vista = resumen.set_index("Materia").reindex(materias).reset_index()
+        tabla = pd.DataFrame({
+            "Asignatura": vista["Materia"].map(nombre_materia),
+            "Resultado medio": [
+                (formato_numero(valor, 2) + (" pts" if materia == "Álgebra" else " / 100"))
+                if pd.notna(valor) else "Sin datos"
+                for materia, valor in zip(vista["Materia"], vista["Resultado promedio"])
+            ],
+            "Escala": ["Acumulado parcial" if m == "Álgebra" else "Promedio / 100" for m in vista["Materia"]],
+            "Con resultado": vista["Con resultado observado"],
+        })
+        st.dataframe(tabla, hide_index=True, row_height=38, width="stretch", column_config={
+            "Asignatura": st.column_config.TextColumn(width=190),
+            "Resultado medio": st.column_config.TextColumn(width=150, help="Media de los resultados observados, sin imputar notas faltantes."),
+            "Escala": st.column_config.TextColumn(width=170, help="Álgebra conserva el esquema acumulativo de 120 puntos; el máximo informado varía según las evaluaciones con nota."),
+            "Con resultado": st.column_config.NumberColumn(width=125, format="%d"),
+        })
+        explorar = st.expander("Explorar distribución y condiciones", key="general_distribucion", on_change="rerun")
+        if explorar.open:
+            with explorar:
+                materia = st.selectbox("Asignatura para explorar", materias, format_func=nombre_materia,
+                                       key="general_distribucion_materia")
+                notas = resultados.loc[resultados["Materia"].eq(materia)]
+                distribucion_resultados(resumir_distribucion_resultados(notas), materia)
+                st.caption("Intervalos cerrados a la derecha; el primero incluye cero. "
+                           f"{notas['Resultado observado'].notna().sum()} estudiantes con resultado observado.")
+                st.markdown(f"**{etiqueta_condicion(materia, 'Condición según notas informadas')}**")
+                detalle = resumir_condiciones(notas)
+                detalle["Porcentaje"] = detalle["Porcentaje (%)"].map(
+                    lambda valor: formato_numero(valor) + " %" if pd.notna(valor) else "Sin datos"
+                )
+                st.dataframe(detalle[["Condición académica", "Alumnos", "Porcentaje"]].rename(
+                    columns={"Condición académica": "Condición", "Alumnos": "Estudiantes"}),
+                    hide_index=True, width="stretch", column_config={"Condición": st.column_config.TextColumn(width=220)})
+                st.caption(f"Denominador de los porcentajes: {len(notas)} estudiantes presentes en calificaciones.")
+
+    with st.container(key="panel_general_tendencia"):
+        st.subheader("Tendencias de participación")
+        tendencia = st.expander("Tendencia diaria de accesos a secciones", key="general_tendencia", on_change="rerun")
+        if tendencia.open:
+            with tendencia:
+                st.caption("La primera carga lee los reportes de trazabilidad de las asignaturas seleccionadas.")
+                try:
+                    tendencias = cargar_tendencias()
+                except (FileNotFoundError, ValueError) as error:
+                    st.error(str(error))
+                else:
+                    tendencia_accesos(tendencias, materias)
+                    st.caption("Eventos con acción Acceder; incluye repeticiones y días sin accesos dentro del período de cada reporte. Los accesos son eventos, no sesiones.")
+
+    tablas = st.expander("Ver tablas de actividad y fuentes", key="general_tablas", on_change="rerun")
+    if tablas.open:
+        with tablas:
+            actividad_tabla, fuentes = st.tabs(["Actividad", "Fuentes y períodos"])
+            datos = vista.assign(Asignatura=vista["Materia"].map(nombre_materia))
+            with actividad_tabla:
+                datos["Cobertura"] = datos["Activos (%)"].map(
+                    lambda v: formato_numero(v) + " %" if pd.notna(v) else "Sin datos")
+                st.dataframe(datos[["Asignatura", "Alumnos del aula", "Con dato de actividad", "Activos", "Inactivos", "Cobertura"]],
+                             hide_index=True, width="stretch", column_config={
+                    "Alumnos del aula": st.column_config.NumberColumn("Alumnos", format="%d"),
+                    "Con dato de actividad": st.column_config.NumberColumn("Con dato", format="%d"),
+                })
+            with fuentes:
+                st.dataframe(datos[["Asignatura", "Usuarios del reporte", "Desde", "Hasta"]], hide_index=True, width="stretch", column_config={
+                    "Usuarios del reporte": st.column_config.NumberColumn("Usuarios del reporte", format="%d"),
+                    "Desde": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                    "Hasta": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                })
+
+    criterios = st.expander("Criterios y denominadores", key="general_criterios", on_change="rerun")
+    if criterios.open:
+        with criterios:
+            st.write("Los estudiantes únicos se deduplican por identificador entre materias. Los registros alumno-materia cuentan una fila por estudiante en cada aula, con independencia de su situación de matrícula.")
+            st.write("Actividad: al menos una interacción durante el período del reporte. Los porcentajes usan alumnos del aula con dato de actividad. Los valores faltantes no se consideran inactivos.")
+            st.write("Las condiciones usan estudiantes presentes en los archivos de calificaciones. El promedio usa solo resultados observados. Las notas faltantes no se convierten en cero.")
+            for materia in materias:
+                st.markdown(f"**{materia}**")
+                mostrar_criterio_academico(materia)
+
+
+def datos_graficos_general(resumen, resultados):
+    """Adapta los resúmenes validados al formato visual; conserva sus denominadores."""
+    actividad, condiciones = [], []
+    for fila in resumen.to_dict("records"):
+        materia = fila["Materia"]
+        for orden, (grupo, cantidad, porcentaje) in enumerate([
+            ("Con actividad", fila["Activos"], fila["Activos (%)"]),
+            ("Sin actividad", fila["Inactivos"], fila["Inactivos (%)"]),
+        ]):
+            actividad.append({"Materia": materia, "Asignatura": nombre_materia(materia), "Grupo": grupo,
+                              "Estudiantes": cantidad, "Porcentaje": porcentaje,
+                              "Porcentaje visible": formato_numero(porcentaje) + " %" if pd.notna(porcentaje) else "Sin datos",
+                              "Base": fila["Con dato de actividad"], "Orden": orden,
+                              "Texto oscuro": grupo == "Sin actividad",
+                              "Criterio": "Una o más interacciones en el período" if grupo == "Con actividad" else "Cero interacciones informadas en el período"})
         notas = resultados.loc[resultados["Materia"].eq(materia)]
-        with st.expander(materia, expanded=True):
-            distribucion = resumir_distribucion_resultados(notas)
-            if distribucion.empty:
-                st.info("Sin resultados observados.")
-            else:
-                st.bar_chart(distribucion, x="Intervalo", y="Alumnos", sort=False, height=200)
-            condiciones = resumir_condiciones(notas).rename(
-                columns={"Condición académica": etiqueta_condicion(materia)}
-            )
-            if materia == "Álgebra":
-                condiciones = condiciones.rename(columns={"Porcentaje (%)": "Porcentaje por condición proyectada (%)"})
-            st.dataframe(condiciones.round(2), hide_index=True)
-            st.caption(
-                f"Denominador de las condiciones: {len(notas)} estudiantes en calificaciones. "
-                "Histograma del resultado observado: suma en Álgebra, promedio en las otras materias. "
-                "Intervalos cerrados a derecha; el primero incluye cero."
-            )
-            mostrar_criterio_academico(materia)
-    st.caption(
-        "Las sumas parciales de Álgebra tienen distinto máximo según las notas informadas. "
-        "No se calcula un promedio global de resultados con escalas diferentes. "
-        "El promedio por materia usa solo estudiantes con resultado observado."
-    )
-    tendencia = st.expander(
-        "Tendencia diaria de accesos a secciones", key="general_tendencia", on_change="rerun"
-    )
-    if tendencia.open:
-        with tendencia:
-            st.caption("La primera carga puede tardar mientras se leen los reportes de trazabilidad.")
-            try:
-                tendencias = cargar_tendencias()
-            except (FileNotFoundError, ValueError) as error:
-                st.error(str(error))
-                return
-            st.line_chart(tendencias, x="Día", y="Accesos a secciones", color="Materia")
-            st.caption(
-                "Acción Acceder de trazabilidad; incluye repeticiones y días sin accesos dentro "
-                "del período de cada reporte. Los accesos son eventos; las fuentes no identifican sesiones."
-            )
+        for orden, fila_condicion in enumerate(resumir_condiciones(notas).to_dict("records")):
+            grupo, porcentaje = fila_condicion["Condición académica"], fila_condicion["Porcentaje (%)"]
+            condiciones.append({"Materia": materia,
+                                "Asignatura": nombre_materia(materia) + (" · proyectada" if materia == "Álgebra" else ""),
+                                "Grupo": grupo, "Estudiantes": fila_condicion["Alumnos"], "Porcentaje": porcentaje,
+                                "Porcentaje visible": formato_numero(porcentaje) + " %" if pd.notna(porcentaje) else "Sin datos",
+                                "Base": len(notas), "Orden": orden, "Texto oscuro": grupo == "Regular",
+                                "Criterio": etiqueta_condicion(materia, "Condición según notas informadas")})
+    return pd.DataFrame(actividad), pd.DataFrame(condiciones)
 
 
 def mostrar_relacion(datos, materia, cargar_indicadores=None):

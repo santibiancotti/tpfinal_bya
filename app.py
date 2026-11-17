@@ -17,17 +17,19 @@ from procesamiento import (consolidar_matricula, preparar_participacion,
 
 from vistas import (mostrar_inicio, mostrar_matricula, mostrar_participacion,
     mostrar_trazabilidad, mostrar_rendimiento, mostrar_individual,
-    mostrar_general, mostrar_relacion)
+    mostrar_general, mostrar_relacion, mostrar_barra_navegacion, DASHBOARDS)
+from estilos import aplicar_estilos, mostrar_encabezado
 
 
 st.set_page_config(
     page_title="Seguimiento académico",
     layout="wide",
 )
+aplicar_estilos()
 
 
 def pagina_inicio():
-    st.info("Abrí una de las siete vistas para comenzar.")
+    mostrar_inicio(paginas)
 
 
 @st.cache_data(show_spinner=False, max_entries=6)
@@ -61,10 +63,12 @@ def pagina_general():
     except FileNotFoundError as error:
         st.error(str(error))
         return
-    materias = st.multiselect(
-        "Asignaturas a consolidar", disponibles, default=disponibles,
-        key="general_materias",
-    )
+    with st.container(key="panel_general_filtros"):
+        materias = st.multiselect(
+            "Asignaturas a consolidar", disponibles, default=disponibles,
+            key="general_materias",
+        )
+        contexto = st.empty()
     if not materias:
         st.info("Seleccioná al menos una asignatura.")
         return
@@ -81,6 +85,13 @@ def pagina_general():
     except (FileNotFoundError, ValueError) as error:
         st.error(str(error))
         return
+    periodos = pd.DataFrame(resumenes)[["Desde", "Hasta"]].drop_duplicates()
+    if len(periodos) == 1:
+        desde, hasta = periodos.iloc[0]
+        contexto.caption(f"PERÍODO DEL REPORTE · {desde:%d/%m/%Y} al {hasta:%d/%m/%Y} · "
+                         f"{len(materias)} asignatura{'s' if len(materias) != 1 else ''}")
+    else:
+        contexto.caption("Los reportes tienen períodos diferentes. Consultá las fechas por asignatura en las tablas de detalle.")
     def cargar_tendencias():
         tendencias = []
         for indice, materia in enumerate(materias, start=1):
@@ -236,14 +247,12 @@ pagina_actual = st.navigation(
     position="hidden",
 )
 
-mostrar_inicio(paginas)
-if st.button("Actualizar fuentes", help="Vacía la caché y vuelve a leer los archivos originales."):
-    st.cache_data.clear()
-    st.rerun()
-st.divider()
+mostrar_barra_navegacion(paginas, pagina_actual)
 
 if pagina_actual.url_path != paginas["inicio"].url_path:
-    st.title(pagina_actual.title)
+    descripcion = next(texto for clave, _, texto in DASHBOARDS
+                       if paginas[clave].url_path == pagina_actual.url_path)
+    mostrar_encabezado(pagina_actual.title, descripcion)
 
 if pagina_actual.url_path not in (paginas["inicio"].url_path, paginas["general"].url_path):
 
