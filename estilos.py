@@ -3,6 +3,7 @@ from html import escape
 from hashlib import sha256
 
 import streamlit as st
+from pandas import isna
 
 AZUL = "#173653"
 ACENTO = "#0F766E"
@@ -51,16 +52,27 @@ def aplicar_estilos():
     .st-key-inicio_catalogo [data-testid="stColumn"] > div {height:100%;}
     div[class*="st-key-panel_"] {background:white;border:1px solid #DEE6EF;border-radius:14px;padding:1.1rem 1.25rem;}
     div[class*="st-key-panel_"] [data-testid="stHeading"] h3 {font-size:1.25rem;line-height:1.35;padding:0;margin:0;}
-    .st-key-general_kpis [data-testid="stMetric"] {background:white;border:1px solid #DEE6EF;border-radius:12px;padding:1rem 1.2rem;}
-    .st-key-general_kpis [data-testid="stMetricLabel"] {color:#526579;font-size:.85rem;min-height:3em;}
-    .st-key-general_kpis [data-testid="stMetricLabel"] [data-testid="stMarkdownContainer"],
-    .st-key-general_kpis [data-testid="stMetricLabel"] p {white-space:normal;overflow:visible;text-overflow:clip;}
-    .st-key-general_kpis [data-testid="stMetricValue"] {color:#173653;font-size:2rem;font-weight:700;letter-spacing:-.035em;}
+    :is(.st-key-general_kpis,div[class*="st-key-kpis_"]) [data-testid="stMetric"] {background:white;border:1px solid #DEE6EF;border-radius:12px;padding:.85rem 1rem;}
+    :is(.st-key-general_kpis,div[class*="st-key-kpis_"]) [data-testid="stMetricLabel"] {color:#526579;font-size:.85rem;min-height:3em;}
+    :is(.st-key-general_kpis,div[class*="st-key-kpis_"]) [data-testid="stMetricLabel"] [data-testid="stMarkdownContainer"],
+    :is(.st-key-general_kpis,div[class*="st-key-kpis_"]) [data-testid="stMetricLabel"] p {white-space:normal;overflow:visible;text-overflow:clip;}
+    :is(.st-key-general_kpis,div[class*="st-key-kpis_"]) [data-testid="stMetricValue"] {color:#173653;font-size:1.85rem;font-weight:700;letter-spacing:-.035em;}
+    .resultado-card {border:1px solid #DEE6EF;border-radius:12px;padding:1rem;background:#F7F9FC;height:100%;}
+    .resultado-card h4 {font-size:1.05rem;color:#173653;margin:0 0 .7rem;}
+    .resultado-card .valor {font-size:2rem;font-weight:700;color:#173653;line-height:1.2;}
+    .resultado-card .unidad {font-size:1rem;font-weight:400;}
+    .resultado-card p {font-size:.85rem;color:#526579;margin:.45rem 0 0;line-height:1.45;}
+    .perfil-nombre {font-size:1.4rem;color:#173653;font-weight:700;margin-bottom:.3rem;}
+    .perfil-contexto {color:#526579;font-size:.95rem;line-height:1.6;}
     [data-testid="stExpander"] {background:white;border-color:#DEE6EF;border-radius:12px;}
     [data-testid="stDataFrame"] {border-radius:9px;}
     @media(max-width:950px) {
       .st-key-general_comparaciones [data-testid="stColumn"] {width:100%!important;flex:1 1 100%!important;min-width:0!important;}
       .st-key-general_comparaciones [data-testid="stHorizontalBlock"] {flex-wrap:wrap;}
+      div[class*="st-key-graficos_"] [data-testid="stColumn"] {width:100%!important;flex:1 1 100%!important;min-width:0!important;}
+      div[class*="st-key-graficos_"] [data-testid="stHorizontalBlock"] {flex-wrap:wrap;}
+      div[class*="st-key-kpis_4_"] [data-testid="stColumn"] {width:calc(50% - .5rem)!important;flex:1 1 calc(50% - .5rem)!important;min-width:0!important;}
+      div[class*="st-key-kpis_4_"] [data-testid="stHorizontalBlock"] {flex-wrap:wrap;}
       .st-key-inicio_general [data-testid="stColumn"] {width:100%!important;flex:1 1 100%!important;}
       .st-key-inicio_general [data-testid="stHorizontalBlock"] {flex-wrap:wrap;}
     }
@@ -96,6 +108,23 @@ def graficar(datos, especificacion, altura=230, descripcion=None):
 
 def nombre_materia(materia):
     return NOMBRES_MATERIAS.get(materia, materia)
+
+
+def indicadores(items, clave):
+    """Fila compacta de métricas nativas con ayudas opcionales."""
+    with st.container(key=f"kpis_{len(items)}_{clave}"):
+        for columna, item in zip(st.columns(len(items)), items):
+            columna.metric(item[0], item[1], help=item[2] if len(item) > 2 else None)
+
+
+def tarjeta_resultado(materia, valor, cantidad):
+    algebra = materia == "Álgebra"
+    numero = "Sin datos" if isna(valor) else formato_numero(valor, 2)
+    unidad = "puntos" if algebra else "/ 100"
+    escala = "Media de puntos acumulados parciales · esquema de 120" if algebra else "Promedio de notas informadas · escala 0–100"
+    st.html(f'<div class="resultado-card"><h4>{escape(nombre_materia(materia))}</h4>'
+            f'<div class="valor">{numero} <span class="unidad">{unidad}</span></div>'
+            f'<p>{escala}</p><p>{int(cantidad)} estudiantes con resultado</p></div>')
 
 
 def formato_numero(valor, decimales=1):

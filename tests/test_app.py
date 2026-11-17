@@ -50,11 +50,14 @@ class VistasConFuentesReales(unittest.TestCase):
                 self.assertEqual(len(set(firmas)), len(self.materias))
         self.abrir("general")
         self.assertEqual(self.app.metric[0].value, str(len(self.materias)))
-        self.assertEqual(len(self.app.dataframe[0].value), len(self.materias))
+        self.assertFalse(self.app.dataframe)
         for materia in self.materias:
             self.app.multiselect(key="general_materias").set_value([materia]).run()
             self.comprobar()
-            self.assertEqual(self.app.dataframe[0].value["Asignatura"].tolist(), [nombre_materia(materia)])
+            self.assertEqual(self.app.metric[0].value, "1")
+            tarjetas = [e.proto.body for e in self.app.get("html") if 'class="resultado-card"' in e.proto.body]
+            self.assertEqual(len(tarjetas), 1)
+            self.assertIn(nombre_materia(materia), tarjetas[0])
         self.app.multiselect(key="general_materias").set_value([]).run()
         self.comprobar()
         self.assertTrue(self.app.info)
@@ -122,17 +125,19 @@ class VistasConFuentesReales(unittest.TestCase):
 
     def test_06_general_detalles_y_proyeccion(self):
         self.abrir("general")
-        self.assertEqual(len(self.app.dataframe), 1)
+        self.assertEqual(len(self.app.dataframe), 0)
         self.app.session_state["general_distribucion"] = True
         self.app.run()
+        self.assertFalse(self.app.dataframe)
+        self.app.session_state["general_distribucion_valores"] = True
         for materia in self.materias:
             self.app.selectbox(key="general_distribucion_materia").select(materia).run()
             self.comprobar()
             etiqueta = "Condición proyectada según notas informadas" if materia == "Álgebra" else "Condición según notas informadas"
             self.assertTrue(any(etiqueta in m.value for m in self.app.markdown))
-            detalle = self.app.dataframe[1].value
+            detalle = self.app.dataframe[0].value
             esperados = datos.leer_calificaciones(materia)["Usuario"].astype("string").str.strip().str.upper().nunique()
-            self.assertEqual(detalle["Estudiantes"].sum(), esperados)
+            self.assertEqual(detalle["Alumnos"].sum(), esperados)
         self.app.session_state["general_criterios"] = True
         self.app.run()
         self.comprobar()

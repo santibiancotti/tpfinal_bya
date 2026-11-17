@@ -1,7 +1,52 @@
 """Gráficos de presentación con escalas, orden y tooltips explícitos."""
 import streamlit as st
 
-from estilos import AZUL, COLORES_MATERIAS, graficar, nombre_materia, formato_numero
+from estilos import AZUL, ACENTO, COLORES_MATERIAS, COLORES_CONDICION, graficar, nombre_materia, formato_numero
+
+COLORES_ACTIVIDAD = {"Con actividad": "#285B8F", "Sin actividad": "#DCE5EF",
+                     "Sin dato de actividad": "#A59AB5", "Sin registro en participación": "#7D8FA3"}
+
+
+def barras(datos, categoria, valor, unidad, *, colores=None, orden=None, porcentaje=False, tooltip=None):
+    """Comparación horizontal de un resumen; no construye tablas de detalle."""
+    if datos.empty:
+        st.info("Sin datos para esta selección.")
+        return
+    encoding = {
+        "y": {"field": categoria, "type": "nominal", "sort": orden or "-x",
+              "axis": {"title": None, "labelLimit": 260}},
+        "x": {"field": valor, "type": "quantitative", "scale": {"zero": True, **({"domain": [0, 100]} if porcentaje else {})},
+              "axis": {"title": unidad, **({"labelExpr": "datum.value + '%'"} if porcentaje else {"format": ".0f", "tickMinStep": 1})}},
+        "tooltip": tooltip or [{"field": categoria, "type": "nominal"}, {"field": valor, "type": "quantitative", "format": ".1f" if porcentaje else ".0f"}],
+    }
+    if colores:
+        encoding["color"] = {"field": categoria, "type": "nominal", "legend": None,
+                             "scale": {"domain": list(colores), "range": list(colores.values())}}
+    graficar(datos, {"mark": {"type": "bar", "color": ACENTO, "cornerRadiusEnd": 3, "size": 24},
+                     "encoding": encoding}, altura=max(200, 44 * len(datos) + 50), descripcion=unidad)
+
+
+def condiciones_academicas(condiciones, materia, base):
+    datos = condiciones.assign(
+        Porcentaje=condiciones["Porcentaje (%)"].map(lambda x: formato_numero(x) + " %" if x == x else "Sin datos"),
+        Denominador=base,
+    )
+    barras(datos, "Condición académica", "Alumnos", "Estudiantes", colores=COLORES_CONDICION,
+           orden=list(COLORES_CONDICION), tooltip=[
+               {"field": "Condición académica", "type": "nominal", "title": "Condición proyectada" if materia == "Álgebra" else "Condición"},
+               {"field": "Alumnos", "type": "quantitative", "title": "Estudiantes", "format": ".0f"},
+               {"field": "Porcentaje", "type": "nominal"},
+               {"field": "Denominador", "type": "quantitative", "format": ".0f"},
+           ])
+
+
+def serie_eventos(datos, fecha="Día", valor="Registros"):
+    graficar(datos, {"mark": {"type": "bar", "color": ACENTO, "cornerRadiusTopLeft": 2, "cornerRadiusTopRight": 2},
+                     "encoding": {
+        "x": {"field": fecha, "type": "temporal", "scale": {"type": "utc"}, "axis": {"title": "Fecha", "format": "%d/%m", "tickCount": 7}},
+        "y": {"field": valor, "type": "quantitative", "scale": {"zero": True}, "axis": {"title": "Eventos", "format": ".0f", "tickMinStep": 1}},
+        "tooltip": [{"field": fecha, "type": "temporal", "format": "%d/%m/%Y"}, {"field": valor, "type": "quantitative", "format": ".0f"}],
+    }}, altura=280, descripcion="Eventos registrados por fecha en la selección.")
 
 
 def porcentajes_por_materia(datos, colores, orden):
