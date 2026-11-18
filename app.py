@@ -62,12 +62,16 @@ def pagina_general():
     except FileNotFoundError as error:
         st.error(str(error))
         return
-    with st.container(key="panel_general_filtros"):
-        materias = st.multiselect(
-            "Asignaturas a consolidar", disponibles, default=disponibles,
-            key="general_materias",
-        )
-        contexto = st.empty()
+    with st.container(key="general_filtros"):
+        seleccion, periodo_visible = st.columns([2.2, 1], vertical_alignment="center")
+        with seleccion:
+            materias = st.multiselect(
+                "Asignaturas a consolidar", disponibles, default=disponibles,
+                key="general_materias",
+            )
+        with periodo_visible:
+            st.html('<div class="eyebrow">PERÍODO DEL REPORTE</div>')
+            contexto = st.empty()
     if not materias:
         st.info("Seleccioná al menos una asignatura.")
         return
@@ -87,8 +91,7 @@ def pagina_general():
     periodos = pd.DataFrame(resumenes)[["Desde", "Hasta"]].drop_duplicates()
     if len(periodos) == 1:
         desde, hasta = periodos.iloc[0]
-        contexto.caption(f"PERÍODO DEL REPORTE · {desde:%d/%m/%Y} al {hasta:%d/%m/%Y} · "
-                         f"{len(materias)} asignatura{'s' if len(materias) != 1 else ''}")
+        contexto.caption(f"{desde:%d/%m/%Y} al {hasta:%d/%m/%Y}")
     else:
         contexto.caption("Los reportes tienen períodos diferentes. Consultá las fechas por asignatura en las tablas de detalle.")
     def cargar_tendencias():

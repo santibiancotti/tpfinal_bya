@@ -82,25 +82,31 @@ def dispersion(pares, variable, resultado, materia):
 def porcentajes_por_materia(datos, colores, orden):
     datos = datos.dropna(subset=["Porcentaje"])
     categorias = [grupo for grupo in colores if datos.loc[datos["Grupo"].eq(grupo), "Estudiantes"].sum() > 0]
-    datos = datos.loc[datos["Grupo"].isin(categorias)]
+    datos = datos.loc[datos["Grupo"].isin(categorias)].sort_values(["Asignatura", "Orden"]).copy()
     if datos.empty:
         st.info("No hay datos suficientes para calcular los porcentajes.")
         return
+    # Posiciones de presentación sobre todos los segmentos, incluidos los pequeños.
+    # Filtrar etiquetas nunca altera la posición de las barras ni sus porcentajes.
+    datos["Fin"] = datos.groupby("Asignatura", sort=False)["Porcentaje"].cumsum()
+    datos["Inicio"] = datos["Fin"] - datos["Porcentaje"]
+    datos["Centro"] = (datos["Inicio"] + datos["Fin"]) / 2
+    datos["Porcentaje tooltip"] = datos["Porcentaje"].map(lambda n: formato_numero(n, 2) + " %")
+    datos["Etiqueta"] = datos["Asignatura"] + "\nBase: " + datos["Base"].map(lambda n: formato_numero(n, 0))
+    etiquetas = datos.drop_duplicates("Asignatura").set_index("Asignatura")["Etiqueta"].to_dict()
     canales = {
-        "x": {"field": "Porcentaje", "type": "quantitative", "stack": "zero",
-              "scale": {"domain": [0, 100]},
-              "axis": {"title": "Estudiantes (%)", "values": [0, 25, 50, 75, 100],
-                       "labelExpr": "datum.value + '%'"}},
-        "y": {"field": "Asignatura", "type": "nominal", "sort": orden,
-              "axis": {"title": None, "labelLimit": 190, "grid": False}},
+        "x": {"field": "Inicio", "type": "quantitative", "scale": {"domain": [0, 100]},
+              "axis": {"title": "Estudiantes (%)", "values": [0, 50, 100], "labelExpr": "datum.value + '%'"}},
+        "y": {"field": "Etiqueta", "type": "nominal", "sort": [etiquetas.get(m, m) for m in orden],
+              "axis": {"title": None, "labelLimit": 180, "grid": False, "labelFontSize": 13,
+                       "labelLineHeight": 17, "labelExpr": "split(datum.label, '\\n')"}},
         "color": {"field": "Grupo", "type": "nominal",
                   "scale": {"domain": categorias, "range": [colores[c] for c in categorias]},
-                  "legend": {"columns": min(3, len(categorias))}},
-        "order": {"field": "Orden", "type": "quantitative"},
+                  "legend": {"columns": min(3, len(categorias)), "labelLimit": 190}},
         "tooltip": [
             {"field": "Materia", "type": "nominal", "title": "Asignatura"},
             {"field": "Grupo", "type": "nominal", "title": "Situación"},
-            {"field": "Porcentaje visible", "type": "nominal", "title": "Porcentaje"},
+            {"field": "Porcentaje tooltip", "type": "nominal", "title": "Porcentaje"},
             {"field": "Estudiantes", "type": "quantitative", "title": "Estudiantes", "format": ".0f"},
             {"field": "Base", "type": "quantitative", "title": "Denominador", "format": ".0f"},
             {"field": "Criterio", "type": "nominal", "title": "Criterio"},
@@ -109,15 +115,16 @@ def porcentajes_por_materia(datos, colores, orden):
     especificacion = {
         "encoding": canales,
         "layer": [
-            {"mark": {"type": "bar", "size": 30, "cornerRadius": 3}},
+            {"mark": {"type": "bar", "size": 36, "cornerRadius": 2}, "encoding": {"x2": {"field": "Fin"}}},
             {"transform": [{"filter": "datum.Porcentaje >= 8"}],
-             "mark": {"type": "text", "align": "right", "dx": -6, "fontSize": 12, "fontWeight": 600},
-             "encoding": {"text": {"field": "Porcentaje visible"},
+             "mark": {"type": "text", "align": "center", "fontSize": 13, "fontWeight": 650},
+             "encoding": {"x": {**canales["x"], "field": "Centro"},
+                          "text": {"field": "Porcentaje visible"},
                           "color": {"condition": {"test": "datum['Texto oscuro']", "value": AZUL}, "value": "white"}}},
         ],
     }
-    graficar(datos, especificacion, altura=max(170, 43 * datos["Asignatura"].nunique() + 100),
-             descripcion="Porcentajes de estudiantes por asignatura. El tooltip informa recuentos y denominador.")
+    graficar(datos, especificacion, altura=max(210, 60 * datos["Asignatura"].nunique() + 100),
+             descripcion="Porcentaje de estudiantes por asignatura, con base visible y recuentos exactos en el tooltip.")
 
 
 def distribucion_resultados(distribucion, materia):

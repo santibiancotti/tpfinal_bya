@@ -50,12 +50,12 @@ class VistasConFuentesReales(unittest.TestCase):
             if vista == "trazabilidad":
                 self.assertEqual(len(set(firmas)), len(self.materias))
         self.abrir("general")
-        self.assertEqual(self.app.metric[0].value, str(len(self.materias)))
+        self.assertEqual(next(m.value for m in self.app.metric if m.label == "Asignaturas"), str(len(self.materias)))
         self.assertFalse(self.app.dataframe)
         for materia in self.materias:
             self.app.multiselect(key="general_materias").set_value([materia]).run()
             self.comprobar()
-            self.assertEqual(self.app.metric[0].value, "1")
+            self.assertEqual(next(m.value for m in self.app.metric if m.label == "Asignaturas"), "1")
             tarjetas = [e.proto.body for e in self.app.get("html") if 'class="resultado-card"' in e.proto.body]
             self.assertEqual(len(tarjetas), 1)
             self.assertIn(nombre_materia(materia), tarjetas[0])
@@ -138,6 +138,8 @@ class VistasConFuentesReales(unittest.TestCase):
 
     def test_06_general_detalles_y_proyeccion(self):
         self.abrir("general")
+        self.app.multiselect(key="general_materias").set_value(self.materias).run()
+        self.comprobar()
         self.assertEqual(len(self.app.dataframe), 0)
         self.app.session_state["general_distribucion"] = True
         self.app.run()

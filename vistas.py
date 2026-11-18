@@ -669,33 +669,35 @@ def mostrar_general(resumen, alumnos, resultados, cargar_tendencias):
     materias += [m for m in resumen["Materia"] if m not in materias]
     orden = [nombre_materia(m) for m in materias]
     with st.container(key="general_kpis"):
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Asignaturas", len(resumen), help="Asignaturas incluidas en la selección actual.")
-        col2.metric("Estudiantes únicos en las aulas", alumnos["Usuario"].nunique(),
+        principal, asignaturas, registros = st.columns([1.5, 1, 1.2], vertical_alignment="bottom")
+        principal.metric("Estudiantes únicos en las aulas", alumnos["Usuario"].nunique(),
                     help="Identificadores distintos entre las aulas seleccionadas; una persona se cuenta una sola vez.")
-        col3.metric("Registros alumno-materia en las aulas", len(alumnos),
+        asignaturas.metric("Asignaturas", len(resumen), help="Asignaturas incluidas en la selección actual.")
+        registros.metric("Registros alumno-materia en las aulas", len(alumnos),
                     help="Cada estudiante se cuenta una vez por asignatura. Una persona puede participar en más de una.")
 
     actividad, condiciones = datos_graficos_general(resumen, resultados)
     with st.container(key="general_comparaciones"):
         izquierda, derecha = st.columns(2, gap="medium")
         with izquierda, st.container(key="panel_general_actividad"):
-            st.subheader("Actividad del aula")
-            st.caption("Participación registrada durante el período del reporte.")
+            st.subheader("Actividad por materia")
+            st.caption("Porcentaje sobre alumnos con dato de actividad.")
             porcentajes_por_materia(actividad, {"Con actividad": "#285B8F", "Sin actividad": "#DCE5EF"}, orden)
         with derecha, st.container(key="panel_general_condiciones"):
-            st.subheader("Condición según notas informadas")
-            st.caption("Álgebra: Condición proyectada según notas informadas."
-                       if "Álgebra" in materias else "Distribución sobre estudiantes presentes en calificaciones.")
+            st.subheader("Condición académica")
+            st.caption("Estudiantes en archivos de notas · Álgebra: proyectada."
+                       if "Álgebra" in materias else "Estudiantes presentes en los archivos de notas.")
             orden_condiciones = [m + " · proyectada" if m == "Álgebra" else m for m in orden]
             porcentajes_por_materia(condiciones, COLORES_CONDICION, orden_condiciones)
 
     with st.container(key="panel_general_rendimiento"):
-        st.subheader("Rendimiento observado")
+        st.subheader("Resultados por materia")
         vista = resumen.set_index("Materia").reindex(materias).reset_index()
         for columna, fila in zip(st.columns(len(materias)), vista.to_dict("records")):
             with columna:
                 tarjeta_resultado(fila["Materia"], fila["Resultado promedio"], fila["Con resultado observado"])
+    with st.container(key="general_profundizar"):
+        st.subheader("Explorar en detalle")
         explorar = st.expander("Explorar distribución y condiciones", key="general_distribucion", on_change="rerun")
         if explorar.open:
             with explorar:
@@ -712,8 +714,7 @@ def mostrar_general(resumen, alumnos, resultados, cargar_tendencias):
                     with valores:
                         st.dataframe(detalle.round(2), hide_index=True, width="stretch")
 
-    with st.container(key="panel_general_tendencia"):
-        st.subheader("Tendencias de participación")
+    with st.container(key="general_tendencia_bloque"):
         tendencia = st.expander("Tendencia diaria de accesos a secciones", key="general_tendencia", on_change="rerun")
         if tendencia.open:
             with tendencia:
