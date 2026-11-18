@@ -8,9 +8,7 @@ from procesamiento import (resumir_trazabilidad, resumir_accesos_diarios,
 
 CARPETA_PROYECTO = Path(__file__).resolve().parent
 
-CARPETA_DATOS = (
-    CARPETA_PROYECTO.parent / "Datos_LMS_Anonimizados"
-)
+CARPETA_DATOS = CARPETA_PROYECTO / "data"
 
 @st.cache_data(show_spinner=False, max_entries=48)
 def _leer_excel_cache(ruta, modificacion_ns, tamano, opciones):
