@@ -19,7 +19,7 @@ DASHBOARDS = [
         (
             "general",
             "General",
-            "Resumen y comparación de indicadores entre materias.",
+            "Actividad y resultados de las materias.",
         ),
         (
             "participacion",
@@ -69,13 +69,14 @@ def mostrar_barra_navegacion(paginas, pagina_actual):
     if pagina_actual.url_path == paginas["inicio"].url_path:
         return
     with st.container(horizontal=True, wrap=True, key="navegacion", gap="small"):
-        if st.button("Inicio", key="abrir_inicio", type="tertiary", icon=":material/home:"):
-            st.switch_page(paginas["inicio"])
         for clave, titulo, _ in DASHBOARDS:
             titulo = {"rendimiento": "Rendimiento", "matricula": "Matrícula y alertas"}.get(clave, titulo)
             activo = pagina_actual.url_path == paginas[clave].url_path
-            if st.button(titulo, key=f"abrir_{clave}", type="primary" if activo else "tertiary"):
+            if st.button(titulo, key=f"abrir_{clave}", type="primary" if activo else "tertiary",
+                         icon=":material/home:" if clave == "general" else None):
                 st.switch_page(paginas[clave])
+        if st.button("Todas las vistas", key="abrir_inicio", type="primary" if pagina_actual.url_path == paginas["inicio"].url_path else "tertiary"):
+            st.switch_page(paginas["inicio"])
 
 
 def mostrar_inicio(paginas):

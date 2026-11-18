@@ -22,7 +22,6 @@ from estilos import aplicar_estilos, mostrar_encabezado
 
 
 st.set_page_config(
-    page_title="Seguimiento académico",
     layout="wide",
 )
 aplicar_estilos()
@@ -209,10 +208,10 @@ def pagina_individual():
 paginas = {
     "inicio": st.Page(
         pagina_inicio,
-        title="Inicio",
-        default=True,
+        title="Todas las vistas",
+        url_path="vistas",
     ),
-    "general": st.Page(pagina_general, title="General", url_path="general"),
+    "general": st.Page(pagina_general, title="General", default=True),
     "relacion": st.Page(pagina_relacion, title="Notas y participación", url_path="relacion"),
     "matricula": st.Page(
         pagina_matricula,
@@ -243,9 +242,15 @@ paginas = {
 
 
 pagina_actual = st.navigation(
-    list(paginas.values()),
+    list(paginas.values()) + [st.Page(pagina_general, title="General", url_path="general")],
     position="hidden",
 )
+
+# Conserva los enlaces anteriores a /general sin construir otra vista.
+if pagina_actual.url_path == "general":
+    st.switch_page(paginas["general"])
+
+st.set_page_config(page_title=f"{pagina_actual.title} · Seguimiento académico")
 
 mostrar_barra_navegacion(paginas, pagina_actual)
 

@@ -119,10 +119,22 @@ class VistasConFuentesReales(unittest.TestCase):
         for vista in ["general", "participacion", "trazabilidad", "rendimiento", "relacion", "individual", "matricula"]:
             self.abrir(vista)
             self.assertFalse(any(b.label == "Abrir vista" for b in self.app.button))
+            self.app.button(key="abrir_general").click().run()
+            self.comprobar()
+            self.assertTrue(self.app.multiselect(key="general_materias"))
+            self.assertEqual(self.app.button(key="abrir_general").proto.type, "primary")
             self.app.button(key="abrir_inicio").click().run()
             self.comprobar()
             self.assertEqual(self.app.button(key="abrir_general").label, "Abrir General")
             self.assertEqual(sum(b.label == "Abrir vista" for b in self.app.button), 6)
+
+    def test_09_general_es_la_entrada_de_la_aplicacion(self):
+        app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=90).run()
+        self.assertFalse(app.exception)
+        self.assertTrue(app.multiselect(key="general_materias"))
+        self.assertEqual(app.button(key="abrir_general").proto.type, "primary")
+        self.assertFalse(any(b.label == "Abrir vista" for b in app.button))
+        self.assertFalse(app.dataframe)
 
     def test_06_general_detalles_y_proyeccion(self):
         self.abrir("general")
