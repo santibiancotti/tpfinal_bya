@@ -1,6 +1,20 @@
 # Presentación de las siete vistas
 
-Entrega del 17/11/2026. Inicio conserva General destacado y las seis tarjetas. Los dashboards comparten tema, encabezado y navegación compacta; cada vista mantiene su página independiente. El rediseño no agrega dependencias ni modifica fuentes, cálculos o cachés.
+Actualizado el 18/11/2026. General es la entrada de la aplicación. Las siete vistas mantienen su independencia y comparten estilos, encabezados, indicadores y gráficos. El rediseño no agrega dependencias ni modifica fuentes, cálculos o cachés.
+
+## Entrada y navegación
+
+La URL raíz `/` abre General. La barra compacta empieza por General, con icono de inicio y estado activo azul profundo; permite acceder a los otros seis dashboards y regresar a General. El título del navegador identifica cada vista. El enlace anterior `/general` redirige a la raíz sin repetir la carga de datos. La landing sigue disponible en `/vistas`, mediante Todas las vistas, y su botón principal vuelve a General.
+
+## Composición final de General
+
+- Encabezado breve, selector de asignaturas y período del reporte. El período queda junto al selector en escritorio y debajo en el ancho menor.
+- Una sola franja azul profundo reúne el contexto: estudiantes únicos es el dato principal, con mayor tamaño; asignaturas y registros alumno-materia quedan como contexto secundario. Las ayudas conservan sus definiciones y los valores proceden de los cálculos existentes.
+- Actividad por materia y Condición académica comparten una superficie blanca. Se presentan lado a lado a 1440 px y apiladas a 780 px, separadas por una línea discreta. Los títulos, unidades, bases por fila y leyendas permiten leer cada comparación sin abrir la metodología.
+- Resultados por materia presenta tres tarjetas de proporción común. Cada una tiene acento superior con el color de la materia, nombre, resultado dominante, unidad y escala, y cantidad de estudiantes en un pie secundario. No hay una caja exterior adicional que compita con ellas.
+- Explorar en detalle agrupa el acceso a distribuciones, tendencia, tablas y criterios. Se conserva la carga diferida real de las secciones costosas.
+
+Los porcentajes conservan su escala completa de 0 a 100. Se redujeron las marcas principales a 0, 50 y 100, se ampliaron las filas y se centraron las etiquetas dentro de los segmentos que tienen espacio. Las categorías pequeñas conservan su segmento y su tooltip. Las posiciones de las etiquetas se calculan sobre todos los segmentos, de modo que ocultar una etiqueta pequeña no desplaza las demás. Los tooltips muestran porcentaje con dos decimales, recuento y denominador, materia completa y criterio.
 
 ## Pregunta y primera lectura
 
@@ -8,7 +22,7 @@ Antes de modificar cada vista se definieron su pregunta y su prioridad:
 
 | Vista | Pregunta principal | Se ve primero | Acceso al detalle |
 | --- | --- | --- | --- |
-| General | ¿Cómo se comparan la actividad y los resultados entre materias? | Tres indicadores, porcentajes de actividad y condición, tarjetas con resultado y escala de cada materia | Explorar distribución y condiciones; tendencia; Ver tablas de actividad y fuentes |
+| General | ¿Cómo se comparan la actividad y los resultados entre materias? | Contexto con estudiantes únicos destacado, comparaciones protagonistas y tarjetas con resultado, unidad y escala | Explorar distribución y condiciones; tendencia; Ver tablas de actividad y fuentes |
 | Participación | ¿Cuántos alumnos participan y cómo evoluciona la actividad? | Alumnos, actividad, cobertura y tiempo estimado; gráfico de actividad | Evolución de accesos; Ver alumnos; Ver valores diarios; reporte original |
 | Trazabilidad | ¿Cuándo y en qué acciones se concentra la actividad? | Indicadores de la selección y mapa horario | Pestañas por día, semana y acción con gráficos; Ver valores del resumen; Detalle; reporte original |
 | Rendimiento | ¿Cómo se comparan los instrumentos y se distribuyen los resultados? | Indicadores y comparación visual por instrumento | Distribución de resultados muestra histograma y condiciones; desplegables con sus valores |
@@ -30,13 +44,14 @@ No se adjunta automáticamente la tabla a cada gráfico. Las notas de instrument
 | Condiciones académicas | Libre `#DC2626`, Regular `#EAB308`, Promociona `#15803D`; se conservan los círculos reales del semáforo |
 | Materias | Álgebra violeta `#6D56A0`, Probabilidad verde azulado `#0F766E`, Algoritmos azul `#2563EB` |
 | Actividad | Azul para actividad, gris claro para ausencia informada; categorías sin datos diferenciadas |
-| Indicadores | Tarjetas de tamaño común, ayudas nativas y etiquetas que admiten saltos de línea |
+| Indicadores | Agrupación en una superficie común, jerarquía de tamaños, ayudas nativas y alineación inferior; General reserva el azul profundo para su contexto |
 | Números y fechas | Coma decimal en indicadores y tarjetas, unidades explícitas, fechas de detalle `DD/MM/YYYY` y ejes temporales `DD/MM` |
+| Tarjetas de resultado | Superficie blanca, acento por materia, resultado de mayor tamaño, unidad y escala junto al dato, recuento secundario |
 | Tablas | Índice oculto, columnas prioritarias y altura limitada; valores secundarios bajo demanda |
 
 Los colores identifican materias, actividad o condición según la leyenda de cada gráfico. La condición académica conserva sus colores y su orden Libre → Regular → Promociona; el estado sigue escrito. Los gráficos omiten categorías sin casos cuando no aportan información, y los valores tabulares conservan todas las categorías, incluidos ceros.
 
-Se reutilizan los componentes nativos de Streamlit y las funciones existentes de procesamiento. Los archivos de presentación son:
+Se reutilizan los componentes nativos de Streamlit y las funciones existentes de procesamiento. Los ajustes compartidos agrupan los indicadores de las otras seis vistas, mejoran sus encabezados y aumentan la legibilidad de ejes y leyendas, conservando su composición específica. Los archivos de presentación son:
 
 - `.streamlit/config.toml`: tema claro nativo.
 - `estilos.py`: paleta, encabezado, `indicadores`, `tarjeta_resultado`, formato numérico, configuración común `graficar` y CSS acotado a claves de contenedores.
@@ -62,15 +77,15 @@ En escritorio amplio los gráficos comparables pueden verse en dos columnas. Por
 
 ## Validación
 
-Se inspeccionaron las vistas antes de modificarlas y se revisaron las siete en navegador real a 1440 y 780 px: lectura de gráficos, etiquetas y escalas, selección de materias, General con una y tres, filtros de casos, notas e historial, tablas opcionales, tendencia, navegación y regreso a Inicio. El filtro de alerta de Matrícula redujo correctamente indicadores y lista a dos casos. Se comprobaron tooltips y denominadores. No se observaron superposiciones, desbordamiento horizontal de la página ni errores de renderizado; las desconexiones de los reinicios controlados del servidor se distinguieron de errores de la aplicación.
+Se inspeccionó la composición original antes de editar. En la pasada del 18/11 se revisó General a 1440 y 780 px, se capturaron su entrada y sus resultados en ambos anchos y se comprobó el retorno a General desde las seis vistas y el menú secundario. También se comprobaron el enlace /general, los títulos y el estado activo. La revisión acumulada de las siete vistas abarca: lectura de gráficos, etiquetas y escalas, selección de materias, General con una y tres, filtros de casos, notas e historial, tablas opcionales, tendencia, navegación y regreso a Inicio. El filtro de alerta de Matrícula redujo correctamente indicadores y lista a dos casos. Se comprobaron tooltips y denominadores. No se observaron superposiciones, desbordamiento horizontal de la página ni errores de renderizado; las desconexiones de los reinicios controlados del servidor se distinguieron de errores de la aplicación.
 
-La suite del entorno virtual aprobó sus 29 pruebas en 72,680 s: 15 de lectura, reglas y procesamiento, 8 de vistas y 6 de cargas diferidas y actualización. Las nuevas comprobaciones verifican que las tablas aparezcan solo al pedirlas, que sus recuentos mantengan la población, que las tarjetas sustituyan la tabla inicial de General y que la ficha conserve el círculo del semáforo.
+La suite del entorno virtual aprobó sus 30 pruebas: 15 de lectura, reglas y procesamiento, 9 de vistas y 6 de cargas diferidas y actualización. Se comprobó la entrada directa a General y su retorno desde las siete vistas, el menú secundario, los detalles opcionales y sus poblaciones. Las tres pruebas puntuales de materias, proyección y entrada también aprobaron al ejecutarse juntas; la de distribución restablece explícitamente su selección inicial para no depender del estado dejado por otra prueba.
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 .\.venv\Scripts\python.exe tools/medir_rendimiento.py --salida mediciones/visual_siete_vistas_2026-11-17.json
 ```
 
-Las 86 métricas comunes de los 34 escenarios y los hashes de los 26 Excel coinciden con la revisión anterior. En la comparación actual la navegación con caché tarda 0,11–0,38 s; la primera tendencia de General tarda 14,64 s frente a 14,31 s en la versión anterior medida en el mismo entorno. Las mediciones de navegación, primeras lecturas y actualización se registran en [RENDIMIENTO.md](RENDIMIENTO.md). El límite de lectura en frío de las trazabilidades sigue existiendo y se informa durante la carga. La medición con AppTest no incluye la pintura del navegador.
+Los 34 escenarios conservan todas sus métricas y los hashes de los 26 Excel coinciden con la revisión anterior. En la pasada del 18/11, volver a General tarda 0,413 s frente a 0,410 s; cambiar entre una y tres materias tarda 0,259 y 0,345 s. La primera consulta de la raíz registra 4,960 s y la primera tendencia 13,842 s. La variación de lectura en frío también se distingue de la presentación; no se atribuye al diseño una aceleración del lector. Los resultados, el alcance de cada medida y sus límites están en [RENDIMIENTO.md](RENDIMIENTO.md).
 
 El CSS utiliza claves de contenedores y selectores `data-testid`, sin clases generadas. Una actualización de Streamlit puede requerir revisar esos selectores. La validación visual cubre los dos anchos indicados.

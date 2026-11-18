@@ -89,10 +89,15 @@ def main():
         resultados.append(resultado)
         print(json.dumps(resultado, ensure_ascii=False), flush=True)
 
-    def nuevo():
+    def nuevo(desde_menu=False):
         nonlocal app
         st.cache_data.clear()
         app = AppTest.from_file(str(RAIZ / "app.py"), default_timeout=180).run()
+        if desde_menu:
+            # General ahora es la raíz. Para comparar las otras vistas en frío,
+            # sale al menú y descarta los datos que cargó esa entrada inicial.
+            app.button(key="abrir_inicio").click().run()
+            st.cache_data.clear()
 
     def abrir(vista):
         app.button(key=f"abrir_{vista}").click().run()
@@ -137,8 +142,7 @@ def main():
         parches.enter_context(patch.object(DeltaGenerator, "metric", medir_primera_metrica))
         materias = datos.detectar_materias()
 
-        nuevo()
-        medir("general_frio", lambda: abrir("general"))
+        medir("general_frio", nuevo)
         abrir("matricula")
         medir("general_reentrada", lambda: abrir("general"))
         medir("general_seleccion_una", lambda: app.multiselect(key="general_materias").set_value(materias[:1]).run())
@@ -150,7 +154,7 @@ def main():
         medir("general_tendencia_tras_actualizar", lambda: tendencia(True))
 
         for vista in ("participacion", "trazabilidad", "relacion", "individual", "rendimiento", "matricula"):
-            nuevo()
+            nuevo(desde_menu=True)
             medir(f"{vista}_frio", lambda: abrir(vista))
             medir(f"{vista}_reentrada", app.run)
             medir(f"{vista}_cambio_materia", lambda: app.selectbox(key="selector_materia").select(materias[1]).run())

@@ -1,6 +1,6 @@
 # Seguimiento académico del TFI
 
-Aplicación local con siete dashboards independientes. Inicio destaca General y organiza las otras seis vistas en tarjetas con botones. Cada dashboard tiene una navegación compacta para cambiar de vista o volver a Inicio. Las fuentes originales se leen desde `../Datos_LMS_Anonimizados` y se transforman en memoria.
+Aplicación local con siete dashboards independientes. La URL raíz abre General. Cada dashboard tiene una navegación compacta para cambiar de vista o volver a General. Todas las vistas abre la landing secundaria con tarjetas, también disponible en `/vistas`; los enlaces anteriores a `/general` siguen funcionando. Las fuentes originales se leen desde `../Datos_LMS_Anonimizados` y se transforman en memoria.
 
 ## Abrir
 
@@ -11,7 +11,7 @@ Desde PowerShell, en la carpeta de este proyecto:
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-Abrir la dirección local que muestra Streamlit. Elegir una vista y una materia; General permite seleccionar varias materias. General muestra primero los indicadores, las comparaciones de actividad y condición y tarjetas de resultado con la escala de cada materia. **Explorar distribución y condiciones** permite elegir una asignatura; **Tendencia diaria de accesos a secciones** carga la evolución al abrirla. Las tablas de actividad y fuentes y los criterios metodológicos tienen sus propios desplegables. En Participación, abrir **Evolución de accesos**. En Notas y Participación, abrir **Incluir indicadores de trazabilidad** para agregarlos al selector del gráfico. En Individual, elegir un estudiante y abrir Notas o Historial de actividad.
+Abrir la dirección local que muestra Streamlit. Elegir una vista y una materia; General permite seleccionar varias materias. General destaca estudiantes únicos y deja asignaturas y registros alumno-materia como contexto. Después presenta las comparaciones de actividad y condición y las tarjetas de resultado, con color, unidad y escala de cada materia. **Explorar distribución y condiciones** permite elegir una asignatura; **Tendencia diaria de accesos a secciones** carga la evolución al abrirla. Las tablas de actividad y fuentes y los criterios metodológicos tienen sus propios desplegables. En Participación, abrir **Evolución de accesos**. En Notas y Participación, abrir **Incluir indicadores de trazabilidad** para agregarlos al selector del gráfico. En Individual, elegir un estudiante y abrir Notas o Historial de actividad.
 
 Las lecturas y los resultados derivados se cachean por materia y firma de sus fuentes (ruta, fecha de modificación y tamaño). Las calificaciones incluyen la lista de todos sus instrumentos. El botón **Actualizar fuentes** vacía todas las cachés; las secciones abiertas se actualizan y las cerradas se leerán al abrirlas. El historial, los detalles y los reportes originales solo se preparan y envían cuando se abre la sección correspondiente. La primera lectura de un Excel grande puede tardar y se informa qué se está cargando.
 
@@ -31,7 +31,7 @@ La jerarquía visual de las siete vistas, sus accesos al detalle y los component
 - Las correlaciones usan pares completos por estudiante y materia, informan su cantidad y requieren al menos tres pares y variación en ambas variables. En Álgebra se utiliza el porcentaje sobre notas informadas. Son asociaciones descriptivas.
 - General distingue estudiantes únicos de registros alumno-materia y conserva las escalas. No promedia globalmente sumas y promedios de materias diferentes.
 
-## Validación local del 16 y 17/11/2026
+## Validación local del 16 al 18/11/2026
 
 Entorno comprobado: Python 3.11.9, Streamlit 1.66.1, pandas 3.1.0, openpyxl 3.1.5 y python-calamine 0.9.1. La consigna local se contrastó con el código y las fuentes.
 
@@ -51,11 +51,11 @@ Pruebas reproducibles:
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-Se ejecutaron 29 pruebas. Quince verifican lectura, procesamiento y caché con casos controlados: fechas e identificadores del Excel, valores faltantes y textos, límites académicos, Álgebra parcial/completa, datos vacíos, faltantes y ceros, formatos desconocidos, duplicados, pares insuficientes/constantes, cardinalidad de uniones, fechas inclusivas, repeticiones y equivalencia de los resúmenes compactos. Ocho pruebas de Streamlit AppTest ejecutan las siete vistas con las tres materias y sus filtros, la navegación y el regreso a Inicio, el detalle de General, las tablas opcionales de las siete vistas, el semáforo y la aclaración de proyección. Seis pruebas puntuales comprueban la carga diferida real, la reutilización del historial, la ausencia de tablas ocultas y la actualización automática y manual de fuentes. Las pruebas de la app requieren las fuentes locales; se omiten si no está esa carpeta.
+Se ejecutaron 30 pruebas. Quince verifican lectura, procesamiento y caché con casos controlados: fechas e identificadores del Excel, valores faltantes y textos, límites académicos, Álgebra parcial/completa, datos vacíos, faltantes y ceros, formatos desconocidos, duplicados, pares insuficientes/constantes, cardinalidad de uniones, fechas inclusivas, repeticiones y equivalencia de los resúmenes compactos. Nueve pruebas de Streamlit AppTest ejecutan las siete vistas con las tres materias y sus filtros, la navegación y el regreso a Inicio, el detalle de General, las tablas opcionales de las siete vistas, el semáforo y la aclaración de proyección. Seis pruebas puntuales comprueban la carga diferida real, la reutilización del historial, la ausencia de tablas ocultas y la actualización automática y manual de fuentes. Las pruebas de la app requieren las fuentes locales; se omiten si no está esa carpeta.
 
 Además se inició el servidor real, se comprobó su endpoint de salud y se revisaron en navegador el cambio del mapa entre Algoritmos y Álgebra, el semáforo, las notas, la apertura del historial, la dispersión de Notas y Participación y la consolidación de las tres materias en General. La cobertura exhaustiva de materias y filtros corresponde a AppTest; los límites y casos sintéticos se comprobaron a nivel de procesamiento.
 
-El 17/11 se revisó el rediseño en navegador real a 1440 y 780 píxeles de ancho: los siete accesos y el regreso a Inicio, General con una y tres materias, la tendencia, los tooltips, las tablas con fechas y los criterios desplegables. Se corrigió el recorte nativo de etiquetas de indicadores en el ancho menor; los valores quedaron alineados y no hubo desbordamiento horizontal de la página ni errores de consola. Tras completar las siete vistas, la suite final aprobó sus 29 pruebas en 72,680 s.
+El 17/11 se revisó el rediseño en navegador real a 1440 y 780 píxeles de ancho: los siete accesos y el regreso a Inicio, General con una y tres materias, la tendencia, los tooltips, las tablas con fechas y los criterios desplegables. Se corrigió el recorte nativo de etiquetas de indicadores en el ancho menor; los valores quedaron alineados y no hubo desbordamiento horizontal de la página ni errores de consola. La pasada focalizada del 18/11 aprobó la suite de 30 pruebas y comprobó la entrada directa a General, el menú secundario y la nueva composición en ambos anchos.
 
 Conteos observados en las fuentes del 01/05/2025 al 24/10/2025:
 

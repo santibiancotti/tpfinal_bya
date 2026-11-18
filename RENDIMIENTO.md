@@ -193,3 +193,40 @@ Las tablas enviadas al entrar se redujeron de 2.270 a 0 bytes en General, de 42.
 Los 34 escenarios terminaron sin errores. Coinciden las 86 métricas con etiquetas comunes, normalizando solo el separador decimal de presentación; algunos indicadores secundarios se trasladaron a ayudas o criterios y se añadieron indicadores visibles. Los recuentos y porcentajes de los detalles se contrastaron en las pruebas de vistas. Los hashes de los 26 XLSX coinciden entre ambas revisiones y con la medición previa.
 
 Evidencia: `mediciones/visual_base_comparable_2026-11-17.json` y `mediciones/visual_siete_vistas_2026-11-17.json`. Las 29 pruebas del entorno virtual aprobaron en 72,680 s, incluidas las seis de cargas diferidas y actualización de fuentes y las dos nuevas de tablas bajo demanda. La revisión del navegador abarcó las siete vistas a 1440 y 780 px, filtros, detalle, semáforo, tendencia, tooltips, actualización y regreso a Inicio. La lectura grande en frío sigue siendo costosa, muestra su estado de carga y no se anticipa al navegar. Las decisiones visuales y los accesos al detalle están en [DISENO.md](DISENO.md).
+
+
+## General como entrada y jerarquía visual · 18/11/2026
+
+Se midió la revisión anterior `d088d51` en un checkout aislado y el diseño final con el mismo entorno virtual y las mismas fuentes. Se conservaron los 34 escenarios. La herramienta se adaptó a la nueva entrada: General en frío incluye ahora la primera ejecución de la raíz y la inicialización de AppTest; antes se medía abrir General desde la landing ya inicializada. Para las otras vistas se vuelve al menú y se vacía la caché después de inicializar la app, de modo que la nueva entrada General no les precargue los datos del escenario frío.
+
+| Escenario | Antes (s) | Después (s) |
+| --- | ---: | ---: |
+| General, primera consulta sin caché | 7,247 | 4,960 |
+| General, segunda entrada | 0,410 | 0,413 |
+| Seleccionar una materia | 0,257 | 0,259 |
+| Seleccionar tres materias | 0,379 | 0,345 |
+| Primera apertura de tendencia | 18,468 | 13,842 |
+| Tendencia con caché | 0,361 | 0,388 |
+| Actualizar fuentes, tendencia cerrada | 3,299 | 2,934 |
+| Tendencia tras actualizar | 16,152 | 13,405 |
+| Participación, segunda entrada | 0,147 | 0,153 |
+| Trazabilidad, segunda entrada | 0,215 | 0,158 |
+| Notas y participación, segunda entrada | 0,179 | 0,196 |
+| Individual, segunda entrada | 0,154 | 0,132 |
+| Rendimiento, segunda entrada | 0,135 | 0,157 |
+| Matrícula, segunda entrada | 0,168 | 0,411 |
+
+La navegación de General y los cambios de materias se mantienen comparables. Son mediciones individuales del servidor con AppTest; no incluyen pintura ni transferencia del navegador, ni permiten afirmar una mejora estadística. La comparación de primera consulta tiene el cambio de alcance indicado: el valor posterior incluye el arranque de AppTest.
+
+La variación en frío se concentra en lectura: Excel pasó de 6,261 a 2,867 s en la primera consulta de General y de 15,948 a 11,847 s en la primera tendencia. La presentación de esas aperturas pasó de 0,163 a 0,166 s y de 0,176 a 0,169 s. No se cambiaron lectores ni cachés y no se atribuye al diseño la reducción de tiempos de Excel. El sistema operativo no se vació de caché y la carga del equipo afecta estas cifras. La primera tendencia sigue siendo una operación costosa, informa su carga y se ejecuta solo al abrirla.
+
+Los 34 escenarios terminaron sin errores y coinciden todas sus métricas, aunque el indicador principal de General cambió de posición. Los 26 SHA256 de las fuentes también coinciden. Las tablas iniciales conservan sus tamaños: cero en General y otras cinco vistas, y la lista compacta de Matrícula. Se aprobó la suite de 30 pruebas, incluidas las seis de cargas diferidas y actualización. Las tres pruebas puntuales de materias, proyección y entrada aprobaron juntas tras explicitar la selección inicial del detalle.
+
+La comprobación en navegador cubrió la raíz General, la redirección del enlace anterior `/general`, las siete vistas y su regreso a General, el menú secundario `/vistas`, una y tres materias, tooltips con recuentos y denominadores, distribuciones, tablas, tendencia y Actualizar fuentes. General se revisó y capturó a 1440 y 780 px, sin desbordamiento horizontal ni errores de renderizado.
+
+Evidencia: `mediciones/general_diseno_antes_2026-11-18.json` y `mediciones/general_diseno_despues_2026-11-18.json`. Las decisiones visuales están en [DISENO.md](DISENO.md).
+
+```powershell
+.\.venv\Scripts\python.exe tools/medir_rendimiento.py --salida mediciones/general_diseno_despues_2026-11-18.json
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
