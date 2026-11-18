@@ -4,6 +4,8 @@
 
 Aplicación de seguimiento académico con siete dashboards independientes. La URL raíz abre General. Cada dashboard tiene una navegación compacta para cambiar de vista o volver a General. Todas las vistas abre la landing secundaria con tarjetas, también disponible en `/vistas`; los enlaces anteriores a `/general` siguen funcionando. Las fuentes se incluyen en `data/` y se transforman en memoria; no se necesita ninguna carpeta externa.
 
+Los resultados recalculados desde las fuentes, con poblaciones, denominadores, cobertura y límites de interpretación, están en [RESULTADOS.md](RESULTADOS.md). Para reproducirlos: `python tools/generar_resultados.py`.
+
 ## Datos incluidos
 
 ```text
@@ -98,7 +100,11 @@ Tiempos aproximados observados desde la acción hasta el contenido visible, incl
 
 Son observaciones puntuales del navegador, distintas de las mediciones locales con AppTest. Actualizar fuentes vacía la caché de la aplicación; la caché del sistema operativo y el arranque de una instancia hibernada no se controlaron. Tampoco se midieron concurrencia ni consumo de memoria en Cloud.
 
-No se observaron excepciones ni mensajes de error de la app. La consola registró advertencias de Vega `Infinite extent` durante cambios de gráficos; las visualizaciones revisadas terminaron mostrando los datos. Esa advertencia queda registrada para una revisión posterior.
+No se observaron excepciones ni mensajes de error de la app. La consola registró advertencias de Vega `Infinite extent` durante cambios de gráficos; las visualizaciones revisadas terminaron mostrando los datos. La revisión posterior del 18/11 reprodujo nueve avisos al entrar en Notas y participación, cambiar a Álgebra y seleccionar Matrícula vigente.
+
+La causa era la inicialización de Vega con el dataset sin nombre vacío: Streamlit lo insertaba después de crear la vista. `graficar` ahora envía el mismo DataFrame como dataset con nombre, disponible antes de calcular las escalas. Se conserva Arrow, los tipos, valores, configuración y carga diferida. El comportamiento está documentado en el [código de Streamlit 1.66.1](https://github.com/streamlit/streamlit/blob/1.66.1/frontend/lib/src/components/elements/ArrowVegaLiteChart/useVegaEmbed.ts).
+
+La corrección se comprobó localmente y en Cloud: el mismo recorrido conservó 142 pares y r=0,157 sin nuevos avisos. También se revisaron series diarias/semanales, histogramas, barras apiladas, una selección sin casos, tendencia tras Actualizar fuentes e historial individual. La consola no registró nuevas advertencias ni errores durante ese recorrido. Las 34 pruebas aprobaron, incluidas dos que comprueban el envío previo del dataset y la conservación de valores, fechas y escalas.
 
 ## Actualizar las fuentes
 
@@ -141,7 +147,7 @@ Pruebas reproducibles:
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-La suite incluye 32 pruebas. Quince verifican lectura, procesamiento y caché con casos controlados: fechas e identificadores del Excel, valores faltantes y textos, límites académicos, Álgebra parcial/completa, datos vacíos, faltantes y ceros, formatos desconocidos, duplicados, pares insuficientes/constantes, cardinalidad de uniones, fechas inclusivas, repeticiones y equivalencia de los resúmenes compactos. Nueve pruebas de Streamlit AppTest ejecutan las siete vistas con las tres materias y sus filtros, la navegación y el regreso a General, el detalle de General, las tablas opcionales de las siete vistas, el semáforo y la aclaración de proyección. Seis pruebas puntuales comprueban la carga diferida real, la reutilización del historial, la ausencia de tablas ocultas y la actualización automática y manual de fuentes. Dos pruebas de portabilidad verifican los hashes y la resolución de las fuentes desde otro directorio. Las fuentes necesarias ya forman parte del repositorio; una copia completa debe ejecutar toda la suite, sin omisiones.
+La suite incluye 34 pruebas. Quince verifican lectura, procesamiento y caché con casos controlados: fechas e identificadores del Excel, valores faltantes y textos, límites académicos, Álgebra parcial/completa, datos vacíos, faltantes y ceros, formatos desconocidos, duplicados, pares insuficientes/constantes, cardinalidad de uniones, fechas inclusivas, repeticiones y equivalencia de los resúmenes compactos. Nueve pruebas de Streamlit AppTest ejecutan las siete vistas con las tres materias y sus filtros, la navegación y el regreso a General, el detalle de General, las tablas opcionales de las siete vistas, el semáforo y la aclaración de proyección. Seis pruebas puntuales comprueban la carga diferida real, la reutilización del historial, la ausencia de tablas ocultas y la actualización automática y manual de fuentes. Dos pruebas de portabilidad verifican los hashes y la resolución de las fuentes desde otro directorio; otras dos verifican los datasets de gráficos, sus tipos, escalas y cambios de valores. Las fuentes necesarias ya forman parte del repositorio; una copia completa debe ejecutar toda la suite, sin omisiones.
 
 Las herramientas de medición y lectura usan la misma carpeta `data/` resuelta por `datos.py`. `tools/comprobar_resumenes.py` contrasta además un commit histórico: requiere Git y el historial completo del clon, mientras que la app y las pruebas no dependen de Git.
 
