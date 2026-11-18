@@ -1,5 +1,7 @@
 # Seguimiento académico del TFI
 
+**Aplicación publicada:** [Abrir el seguimiento académico](https://tpfinalbya-bianloc.streamlit.app/).
+
 Aplicación de seguimiento académico con siete dashboards independientes. La URL raíz abre General. Cada dashboard tiene una navegación compacta para cambiar de vista o volver a General. Todas las vistas abre la landing secundaria con tarjetas, también disponible en `/vistas`; los enlaces anteriores a `/general` siguen funcionando. Las fuentes se incluyen en `data/` y se transforman en memoria; no se necesita ninguna carpeta externa.
 
 ## Datos incluidos
@@ -74,7 +76,29 @@ Configurar una nueva app con estos valores:
 
 Conectar la cuenta de GitHub en Community Cloud, autorizar el acceso al repositorio y pulsar **Deploy**. La versión de Python se elige en Advanced settings; no depende del entorno virtual local. No se necesita `packages.txt`: los lectores se instalan desde paquetes Python. Referencias oficiales: [organización de archivos](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/file-organization), [dependencias](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/app-dependencies) y [configuración del despliegue](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy).
 
-Tras desplegar, comprobar General en `/`, las siete vistas y la primera apertura de tendencias e historial. Esa apertura sigue leyendo Excel en frío; su duración y consumo dependen de los recursos del servidor. Las cargas diferidas y los mensajes de carga se mantienen. La ejecución real en Linux y los límites de memoria de Community Cloud deben confirmarse en ese primer despliegue.
+En un nuevo despliegue, comprobar General en `/`, las siete vistas y la primera apertura de tendencias e historial. Esa apertura sigue leyendo Excel en frío; su duración y consumo dependen de los recursos del servidor. Las cargas diferidas y los mensajes de carga se mantienen.
+
+### Verificación de la app publicada · 18/11/2026
+
+Se recorrió la URL publicada en el navegador, mediante navegación directa y sin solicitar inicio de sesión. La comprobación en incógnito quedó fuera del recorrido por indicación del usuario.
+
+- General abrió directamente con 319 estudiantes únicos, 3 materias y 957 registros alumno-materia. Se comprobó Álgebra sola y la restauración de las tres materias.
+- Se abrieron los siete dashboards, cambiando materias y regresando a General. Se probaron los filtros de estudiante, período, población y actividad. En Trazabilidad, pasar del 05/08 al 05/09 redujo los registros de Álgebra de 41.983 a 20.482; la edición del período se aplica al salir del selector.
+- Tendencias, distribución, valores tabulares, eventos originales, notas e historiales se mostraron al solicitarlos. En Individual se observó la condición proyectada «Promociona» de Álgebra y su círculo verde. Rendimiento y Notas y Participación mantuvieron la identificación de proyección y sus denominadores.
+- Actualizar fuentes permitió volver a consultar las fuentes actuales, manteniendo 319/957 y recargando la tendencia. Se verificó el refresco de cachés con los archivos ya publicados; los XLSX se conservaron intactos.
+
+Tiempos aproximados observados desde la acción hasta el contenido visible, incluyendo red, interfaz y automatización:
+
+| Consulta | Tiempo observado |
+| --- | ---: |
+| Recargar la URL completa, con servidor activo y datos cacheados | 7,15 s |
+| Abrir la tendencia de General tras Actualizar fuentes | 5,50–5,79 s |
+| Reabrir esa tendencia con caché | 1,20–1,78 s |
+| Navegación y filtros con datos cacheados | 0,60–1,89 s |
+
+Son observaciones puntuales del navegador, distintas de las mediciones locales con AppTest. Actualizar fuentes vacía la caché de la aplicación; la caché del sistema operativo y el arranque de una instancia hibernada no se controlaron. Tampoco se midieron concurrencia ni consumo de memoria en Cloud.
+
+No se observaron excepciones ni mensajes de error de la app. La consola registró advertencias de Vega `Infinite extent` durante cambios de gráficos; las visualizaciones revisadas terminaron mostrando los datos. Esa advertencia queda registrada para una revisión posterior.
 
 ## Actualizar las fuentes
 
@@ -149,4 +173,4 @@ Los reportes indican período mayo-octubre de 2025, pero los eventos presentes c
 
 Las fuentes identifican eventos de acceso, no sesiones. No se inventó una definición de sesión ni un modelo o umbral nuevo de riesgo. Los grupos descriptivos usan actividad registrada y condición académica. La matrícula refleja el último estado disponible del archivo, no una verificación administrativa en tiempo real.
 
-Las siete vistas comparten tema, encabezado, indicadores y gráficos como primera lectura, y detalle bajo demanda. El repositorio queda preparado para instalación independiente y despliegue; el informe técnico final y la puesta en marcha en Community Cloud son etapas posteriores.
+Las siete vistas comparten tema, encabezado, indicadores y gráficos como primera lectura, y detalle bajo demanda. El repositorio permite una instalación independiente y la app ya está desplegada en Community Cloud. El informe técnico final queda para una etapa posterior.
