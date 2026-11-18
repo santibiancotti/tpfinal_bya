@@ -130,7 +130,11 @@ def graficar(datos, especificacion, altura=230, descripcion=None):
                    "title": None, "orient": "bottom", "symbolType": "circle"},
     }
     firma = sha256(datos.to_json(orient="split", date_format="iso").encode("utf-8")).hexdigest()[:16]
-    st.vega_lite_chart(datos, spec={"name": f"academico_{firma}", "config": configuracion, **especificacion},
+    # Streamlit incorpora los datasets con nombre antes de inicializar Vega.
+    # La tabla sin nombre se inserta después y provoca escalas vacías transitorias.
+    st.vega_lite_chart(spec={"name": f"academico_{firma}", "config": configuracion,
+                            **especificacion, "data": {"name": "datos_academicos"},
+                            "datasets": {"datos_academicos": datos}},
                        width="stretch", height=altura, theme=None, alt=descripcion)
 
 
